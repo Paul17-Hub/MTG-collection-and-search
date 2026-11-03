@@ -360,6 +360,39 @@ dialog[open]{max-height:94dvh;overflow:auto}
 .tabrow{display:flex;align-items:center;gap:6px;padding:4px 0}
 .tabrow.drag{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-radius:8px}
 .tabrow input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:16px}
+.dd{display:inline-block;position:relative;max-width:100%;min-width:0;vertical-align:middle}
+label>.dd,.cdform .dd,.maprow .dd,.fgrp .dd{display:block}
+.ddnative{display:none!important}
+.ddbtn{width:100%;justify-content:space-between;text-align:left;padding:8px 10px;min-height:40px}
+.ddl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ddc{opacity:.7;flex:none}
+.ddpanel{position:fixed;z-index:10000;overflow:auto}
+.ddsearch{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:16px;margin:0 0 6px}
+.ddopt{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:transparent;padding:10px 10px;border-radius:8px;text-align:left}
+.ddopt:hover,.ddopt:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent);outline:0}
+.ddopt[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 16%,transparent);font-weight:700}
+.ddopt[disabled]{opacity:.45}
+.ddck{color:var(--accent)}
+.dragghost{position:fixed;z-index:10001;margin:0!important;pointer-events:none;box-sizing:border-box;background:var(--panel);border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.5);transform:scale(1.03) rotate(.8deg);opacity:.97;cursor:grabbing;border:1px solid var(--accent);overflow:hidden}
+.dragghost.drop{transform:none;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.dragghost.dblock{background:var(--bg)}
+.ph{opacity:.4;outline:2px dashed var(--accent);outline-offset:-2px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.dblock.ph>*:not(summary){display:none}
+body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
+.dlayout{display:grid;gap:12px;align-items:start;position:relative;margin:0 0 12px}
+.dlayout>.dblock{margin:0;min-width:0}
+.dlayout>.dblock[data-span="2"]{grid-column:1/-1}
+details.dblock>summary .grip{width:30px;min-height:28px;flex:none;margin:-4px 0 -4px -6px}
+.dblock .dbody{min-width:0}
+.dblock .dbody.sized{overflow:auto}
+.rz{height:14px;margin:8px -12px -12px;cursor:ns-resize;touch-action:none;position:relative}
+.rz::after{content:"";position:absolute;left:50%;top:5px;width:44px;margin-left:-22px;height:4px;border-radius:2px;background:var(--line)}
+.rz:hover::after{background:var(--accent)}
+details.dblock:not([open])>.rz{display:none}
+.dsplit{position:absolute;top:0;bottom:0;width:14px;margin-left:-7px;cursor:col-resize;touch-action:none;z-index:3}
+.dsplit::after{content:"";position:absolute;left:6px;top:0;bottom:0;width:2px;border-radius:1px;background:transparent}
+.dsplit:hover::after,.dsplit.on::after{background:var(--accent)}
+@media (max-width:899px){.dlayout{display:block}.dlayout>.dblock{margin:0 0 12px}.dsplit{display:none}.mvs [data-sp]{display:none}}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -1343,10 +1376,10 @@ function deckRefreshHint() {
   const link = m && repo ? ` <a href="https://github.com/${m[1]}/${repo}/actions/workflows/decks.yml" target="_blank" rel="noopener noreferrer">Vernieuw de decks via GitHub ↗</a> (Run workflow; het duurt daarna een paar minuten).` : ' Vernieuwen gaat via GitHub: Actions → Decks ophalen uit Archidekt → Run workflow.';
   return 'Iets aangepast in Archidekt?' + link;
 }
-const BLK_DEFAULT = ['bracket', 'opbouw', 'recs', 'plan', 'lijsten', 'kaarten'];
+const BLK_DEFAULT = ['bracket', 'opbouw', 'recs', 'plan', 'lijsten', 'kaarten'], DEF_SPAN = { recs: 2, kaarten: 2 };
 function blkState() {
   const b = (state.deckBlocks = state.deckBlocks || { order: [], open: {} });
-  b.order = [...(b.order || []).filter((i) => BLK_DEFAULT.includes(i)), ...BLK_DEFAULT.filter((i) => !(b.order || []).includes(i))]; b.open = b.open || {};
+  b.order = [...(b.order || []).filter((i) => BLK_DEFAULT.includes(i)), ...BLK_DEFAULT.filter((i) => !(b.order || []).includes(i))]; b.open = b.open || {}; b.span = b.span || {}; b.h = b.h || {}; b.r = b.r || 50;
   return b;
 }
 function recsSum(d) { const rd = recsData.decks[d.id]; return rd && rd.lists && rd.lists.length ? `<span class="pill">${rd.lists.reduce((n, l) => n + l.cards.length, 0)} kaarten</span>` : ''; }
@@ -1481,8 +1514,8 @@ function renderDecks() {
       <div id="deck-cards"></div>
 ` }
   };
-  const blockHtml = (id) => { const df = defs[id], isOpen = bs.open[id] ?? df.open; return `<details class="dblock" data-b="${id}" ${isOpen ? 'open' : ''}><summary><b>${df.t}</b>${df.sum || ''}<span class="mvs"><button type="button" class="mvb" data-mv="up" data-b="${id}" aria-label="Blok omhoog" title="Omhoog">▲</button><button type="button" class="mvb" data-mv="down" data-b="${id}" aria-label="Blok omlaag" title="Omlaag">▼</button></span></summary><div class="dbody">${df.html}</div></details>`; };
-  body.innerHTML = `${headHtml}<div class="blkbar"><button type="button" class="btn mini" data-blk="close">Alles inklappen</button><button type="button" class="btn mini" data-blk="open">Alles uitklappen</button><button type="button" class="btn mini" data-blk="flip">Volgorde omdraaien</button><button type="button" class="btn mini" data-blk="reset">Standaardvolgorde</button></div>${bs.order.map(blockHtml).join('')}`;
+  const blockHtml = (id) => { const df = defs[id], isOpen = bs.open[id] ?? df.open, sp = bs.span[id] ?? (DEF_SPAN[id] || 1), hh = bs.h[id]; return `<details class="dblock" data-b="${id}" data-span="${sp}" ${isOpen ? 'open' : ''}><summary><button type="button" class="grip" aria-label="Verplaats ${df.t} (pijltjestoetsen of slepen)" title="Slepen">⠿</button><b>${df.t}</b>${df.sum || ''}<span class="mvs"><button type="button" class="mvb" data-sp="${id}" aria-label="Halve of volle breedte" title="${sp === 2 ? 'Halve breedte' : 'Volle breedte'}">${sp === 2 ? '⇥⇤' : '⇤⇥'}</button></span></summary><div class="dbody ${hh ? 'sized' : ''}" ${hh ? `style="height:${hh}px"` : ''}>${df.html}</div><div class="rz" data-rz="${id}" title="Sleep om hoger of lager te maken (dubbelklik: automatisch)"></div></details>`; };
+  body.innerHTML = `${headHtml}<div class="blkbar"><button type="button" class="btn mini" data-blk="close">Alles inklappen</button><button type="button" class="btn mini" data-blk="open">Alles uitklappen</button><button type="button" class="btn mini" data-blk="flip">Volgorde omdraaien</button><button type="button" class="btn mini" data-blk="reset">Standaardvolgorde</button></div><div class="dlayout" id="dlayout" style="grid-template-columns:minmax(0,${bs.r}fr) minmax(0,${100 - bs.r}fr)">${bs.order.map(blockHtml).join('')}<div class="dsplit" id="dsplit" style="left:${bs.r}%" role="separator" aria-orientation="vertical" title="Sleep om de kolommen breder of smaller te maken (dubbelklik: gelijk)"></div></div>`;
   $('deck-foot').innerHTML = `Decks opgehaald: ${deckData.synced ? ago(deckData.synced) : 'onbekend'}. ` + deckRefreshHint();
   renderDeckFilterUI(); renderDeckCards(d);
 }
@@ -1537,10 +1570,10 @@ $('deck-body').addEventListener('change', (e) => {
 });
 $('deck-body').addEventListener('toggle', (e) => { const id = e.target.dataset && e.target.dataset.b; if (id) { const b = blkState(); if (b.open[id] !== e.target.open) { b.open[id] = e.target.open; persist(); } } }, true);
 $('deck-body').addEventListener('click', (e) => {
-  const mvb = e.target.closest('[data-mv]');
-  if (mvb) { e.preventDefault(); e.stopPropagation(); const b = blkState(), i = b.order.indexOf(mvb.dataset.b), j = mvb.dataset.mv === 'up' ? i - 1 : i + 1; if (i >= 0 && j >= 0 && j < b.order.length) { [b.order[i], b.order[j]] = [b.order[j], b.order[i]]; persist(); renderDecks(); } return; }
+  const spb = e.target.closest('[data-sp]');
+  if (spb) { e.preventDefault(); e.stopPropagation(); const b = blkState(), id = spb.dataset.sp, cur = b.span[id] ?? (DEF_SPAN[id] || 1); b.span[id] = cur === 2 ? 1 : 2; persist(); renderDecks(); return; }
   const bk = e.target.closest('[data-blk]');
-  if (bk) { const b = blkState(), a = bk.dataset.blk; if (a === 'flip') b.order.reverse(); else if (a === 'reset') { b.order = [...BLK_DEFAULT]; b.open = {}; } else BLK_DEFAULT.forEach((id) => { b.open[id] = a === 'open'; }); persist(); renderDecks(); return; }
+  if (bk) { const b = blkState(), a = bk.dataset.blk; if (a === 'flip') b.order.reverse(); else if (a === 'reset') { b.order = [...BLK_DEFAULT]; b.open = {}; b.span = {}; b.h = {}; b.r = 50; } else BLK_DEFAULT.forEach((id) => { b.open[id] = a === 'open'; }); persist(); renderDecks(); return; }
   const dfc = e.target.closest('.fc[data-k^="d"]');
   if (dfc) { const S = { dtypes: deckF.types, dcolors: deckF.colors, dmvs: deckF.mvs, drar: deckF.rar }[dfc.dataset.k], v = dfc.dataset.k === 'dmvs' ? +dfc.dataset.v : dfc.dataset.v; S.has(v) ? S.delete(v) : S.add(v); renderDeckFilterUI(); const dd = curDeckObj(); if (dd) renderDeckCards(dd); return; }
   if (e.target.closest('#dk-fclear')) { deckF.types.clear(); deckF.colors.clear(); deckF.mvs.clear(); deckF.rar.clear(); deckF.pmin = deckF.pmax = null; if ($('dk-pmin')) $('dk-pmin').value = ''; if ($('dk-pmax')) $('dk-pmax').value = ''; renderDeckFilterUI(); const dd = curDeckObj(); if (dd) renderDeckCards(dd); return; }
@@ -2442,23 +2475,65 @@ $('tab-coll').addEventListener('click', () => setTab('coll'));
 
 /* ---------- slepen, tabbladen en lijstvolgorde ---------- */
 function sortable(box, itemSel, done) {
+  const keyOf = (x) => x.dataset.key ?? x.dataset.b;
+  const keys = () => [...box.querySelectorAll(itemSel)].map(keyOf);
   const move = (item, dir) => { const sib = dir < 0 ? item.previousElementSibling : item.nextElementSibling; if (!sib || !sib.matches(itemSel)) return false; item.parentNode.insertBefore(item, dir < 0 ? sib : sib.nextElementSibling); return true; };
-  const keys = () => [...box.querySelectorAll(itemSel)].map((x) => x.dataset.key);
   box.addEventListener('keydown', (e) => {
-    const grip = e.target.closest('.grip'); if (!grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    const item = grip.closest(itemSel); e.preventDefault();
-    if (move(item, e.key === 'ArrowUp' ? -1 : 1)) { grip.focus(); done(keys()); }
+    const grip = e.target.closest('.grip'); if (!grip || !box.contains(grip) || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    const item = grip.closest(itemSel); if (!item) return; e.preventDefault();
+    if (move(item, e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1)) { grip.focus(); done(keys()); }
   });
+  box.addEventListener('click', (e) => { if (e.target.closest('.grip')) e.preventDefault(); });
   box.addEventListener('pointerdown', (e) => {
+    if (e.button) return;
     const grip = e.target.closest('.grip'); if (!grip || !box.contains(grip)) return;
     const item = grip.closest(itemSel); if (!item) return; e.preventDefault();
-    item.classList.add('drag');
-    const mv = (ev) => {
-      let before = null;
-      for (const o of box.querySelectorAll(itemSel)) { if (o === item) continue; const r = o.getBoundingClientRect(); if (ev.clientY < r.top + r.height / 2) { before = o; break; } }
-      if (before !== item.nextElementSibling) item.parentNode.insertBefore(item, before);
+    try { grip.releasePointerCapture(e.pointerId); } catch {}
+    const startKeys = keys().join('\u0001'), r0 = item.getBoundingClientRect();
+    const host = box.closest('dialog') || document.body;
+    const ghost = document.createElement('div');
+    if (item.matches('details')) { ghost.className = 'dblock dragghost'; ghost.appendChild(item.querySelector('summary').cloneNode(true)); }
+    else { ghost.className = 'dragghost ' + item.className; ghost.innerHTML = item.innerHTML; }
+    ghost.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+    ghost.style.cssText = `left:${r0.left}px;top:${r0.top}px;width:${r0.width}px`;
+    host.appendChild(ghost);
+    const offX = e.clientX - r0.left, offY = e.clientY - r0.top;
+    let px = e.clientX, py = e.clientY, raf = 0;
+    item.classList.add('ph'); document.body.classList.add('dragging');
+    const place = () => { ghost.style.left = px - offX + 'px'; ghost.style.top = py - offY + 'px'; };
+    const reorder = () => {
+      const all = [...box.querySelectorAll(itemSel)], others = all.filter((o) => o !== item); if (!others.length) return;
+      const rs = others.map((o) => o.getBoundingClientRect());
+      const lefts = all.map((o) => o.getBoundingClientRect().left), grid = lefts.some((l) => Math.abs(l - lefts[0]) > 8);
+      let ti = -1;
+      for (let i = 0; i < others.length; i++) { const r = rs[i]; if (grid ? (py < r.top || (py <= r.bottom && px < r.left + r.width / 2)) : py < r.top + r.height / 2) { ti = i; break; } }
+      const want = ti < 0 ? others.length : ti;
+      if (all.indexOf(item) === want) return;
+      const before = new Map(all.map((o) => [o, o.getBoundingClientRect()]));
+      if (ti < 0) others[others.length - 1].after(item); else others[ti].before(item);
+      for (const o of all) {
+        if (o === item) continue; const a = before.get(o), b = o.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top; if (!dx && !dy) continue;
+        o.style.transition = 'none'; o.style.transform = `translate(${dx}px,${dy}px)`; o.getBoundingClientRect();
+        o.style.transition = 'transform .16s ease'; o.style.transform = '';
+        setTimeout(() => { o.style.transition = ''; }, 200);
+      }
     };
-    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); item.classList.remove('drag'); done(keys()); };
+    const scroller = (() => { for (let n = box; n && n !== document.body; n = n.parentElement) { const s = getComputedStyle(n); if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 4) return n; } return null; })();
+    const tick = () => {
+      const top = scroller ? scroller.getBoundingClientRect().top : 0, bot = scroller ? scroller.getBoundingClientRect().bottom : innerHeight, z = 70; let dy = 0;
+      if (py < top + z) dy = -Math.ceil(14 * Math.min(1, (top + z - py) / z)); else if (py > bot - z) dy = Math.ceil(14 * Math.min(1, (py - (bot - z)) / z));
+      if (dy) { if (scroller) scroller.scrollTop += dy; else scrollBy(0, dy); reorder(); }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const mv = (ev) => { px = ev.clientX; py = ev.clientY; place(); reorder(); };
+    const up = () => {
+      document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); cancelAnimationFrame(raf);
+      const r = item.getBoundingClientRect(); ghost.style.transition = 'left .15s ease, top .15s ease, transform .15s ease, box-shadow .15s'; ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px'; ghost.classList.add('drop');
+      const eat = (c) => { c.stopPropagation(); c.preventDefault(); }; document.addEventListener('click', eat, true); setTimeout(() => document.removeEventListener('click', eat, true), 60);
+      setTimeout(() => { ghost.remove(); item.classList.remove('ph'); document.body.classList.remove('dragging'); }, 160);
+      if (keys().join('\u0001') !== startKeys) done(keys());
+    };
     document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
   });
 }
@@ -2508,6 +2583,84 @@ function renderListPicker(lists, none) {
 sortable($('lchips'), '#lsortable .litem', (keys) => { state.listOrder = keys; persist(); renderWantlist(); });
 document.addEventListener('click', (e) => { if (lOpen && !e.target.closest('.lpick')) { lOpen = false; renderDeckUI(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lOpen) { lOpen = false; renderDeckUI(); $('lbtn')?.focus(); } });
+
+
+sortable($('deck-body'), '.dlayout>.dblock[data-b]', (keys) => { const b = blkState(); b.order = keys; persist(); });
+$('deck-body').addEventListener('pointerdown', (e) => {
+  const rz = e.target.closest('.rz'), sp = e.target.closest('#dsplit'); if (!rz && !sp) return; e.preventDefault();
+  const b = blkState();
+  if (rz) {
+    const det = rz.closest('details'), body = det.querySelector('.dbody'), id = rz.dataset.rz, h0 = body.getBoundingClientRect().height, y0 = e.clientY;
+    const mv = (ev) => { const h = Math.max(80, Math.min(2400, Math.round(h0 + ev.clientY - y0))); body.classList.add('sized'); body.style.height = h + 'px'; b.h[id] = h; };
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); document.body.classList.remove('dragging'); persist(); };
+    document.body.classList.add('dragging'); document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+  } else {
+    const lay = $('dlayout'), r = lay.getBoundingClientRect(); sp.classList.add('on');
+    const mv = (ev) => { const v = Math.max(25, Math.min(75, Math.round(((ev.clientX - r.left) / r.width) * 100))); b.r = v; lay.style.gridTemplateColumns = `minmax(0,${v}fr) minmax(0,${100 - v}fr)`; sp.style.left = v + '%'; };
+    const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); sp.classList.remove('on'); document.body.classList.remove('dragging'); persist(); };
+    document.body.classList.add('dragging'); document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+  }
+});
+$('deck-body').addEventListener('dblclick', (e) => {
+  const rz = e.target.closest('.rz'), sp = e.target.closest('#dsplit'), b = blkState();
+  if (rz) { delete b.h[rz.dataset.rz]; const body = rz.closest('details').querySelector('.dbody'); body.style.height = ''; body.classList.remove('sized'); persist(); }
+  else if (sp) { b.r = 50; persist(); renderDecks(); }
+});
+/* ---------- huisstijl-dropdown voor alle keuzemenu's ---------- */
+let ddCur = null;
+const ddRefresh = (sel) => { const d = sel._dd; if (!d) return; const o = sel.options[sel.selectedIndex]; d.l.textContent = o ? o.textContent : '—'; d.btn.disabled = sel.disabled; };
+function ddClose() { if (!ddCur) return; ddCur.p.remove(); ddCur.btn.setAttribute('aria-expanded', 'false'); ddCur = null; }
+function ddOpen(sel) {
+  ddClose(); if (sel.disabled) return;
+  const d = sel._dd, opts = [...sel.options], host = sel.closest('dialog') || document.body;
+  const p = document.createElement('div'); p.className = 'lpanel ddpanel'; p.setAttribute('role', 'listbox');
+  const many = opts.length > 12;
+  p.innerHTML = `${many ? '<input type="search" class="ddsearch" placeholder="Zoeken…" aria-label="Zoeken in de keuzes" autocomplete="off">' : ''}<div class="ddlist"></div>`;
+  const list = p.querySelector('.ddlist');
+  const fill = (q) => {
+    const nq = norm(q || '');
+    list.innerHTML = opts.map((o, i) => ({ o, i })).filter(({ o }) => !nq || norm(o.textContent).includes(nq)).map(({ o, i }) => `<button type="button" class="ddopt" role="option" data-i="${i}" aria-selected="${i === sel.selectedIndex}" ${o.disabled ? 'disabled' : ''}><span>${esc(o.textContent)}</span><span class="ddck" aria-hidden="true">${i === sel.selectedIndex ? '✓' : ''}</span></button>`).join('') || '<div class="hint" style="margin:8px">Niets gevonden.</div>';
+  };
+  fill(''); host.appendChild(p);
+  const r = d.btn.getBoundingClientRect(), vw = innerWidth, vh = innerHeight, w = Math.min(Math.max(r.width, 220), vw - 16);
+  const below = vh - r.bottom - 12, above = r.top - 12, up = below < 260 && above > below, room = Math.max(120, Math.min(up ? above : below, 460));
+  p.style.cssText = `position:fixed;width:${w}px;left:${Math.max(8, Math.min(r.left, vw - w - 8))}px;max-height:${room}px;margin:0;${up ? `bottom:${vh - r.top + 6}px;top:auto` : `top:${r.bottom + 6}px`}`;
+  d.btn.setAttribute('aria-expanded', 'true'); ddCur = { sel, p, btn: d.btn };
+  const cur = p.querySelector('[aria-selected="true"]'); if (cur) cur.scrollIntoView({ block: 'nearest' });
+  const s = p.querySelector('.ddsearch'); if (s) { if (matchMedia('(pointer:fine)').matches) s.focus(); s.addEventListener('input', () => fill(s.value)); }
+  else if (cur) cur.focus({ preventScroll: true }); else p.querySelector('.ddopt')?.focus({ preventScroll: true });
+  p.addEventListener('click', (e) => { const b = e.target.closest('.ddopt'); if (!b) return; ddPick(sel, +b.dataset.i); });
+  p.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); ddClose(); d.btn.focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return; e.preventDefault();
+    const bs = [...p.querySelectorAll('.ddopt:not([disabled])')], i = bs.indexOf(document.activeElement);
+    (bs[i < 0 ? (e.key === 'ArrowDown' ? 0 : bs.length - 1) : Math.max(0, Math.min(bs.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))] || s)?.focus();
+  });
+}
+function ddPick(sel, i) { const btn = sel._dd.btn; ddClose(); if (i !== sel.selectedIndex) { sel.selectedIndex = i; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } btn.focus({ preventScroll: true }); }
+function ddEnhance(sel) {
+  if (sel._dd || sel.multiple || sel.size > 1) return;
+  const wrap = document.createElement('span'); wrap.className = 'dd';
+  for (const k of ['flex', 'minWidth', 'width', 'maxWidth', 'margin', 'marginBottom', 'marginTop']) if (sel.style[k]) wrap.style[k] = sel.style[k];
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn lbtn ddbtn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
+  const al = sel.getAttribute('aria-label'); if (al) btn.setAttribute('aria-label', al);
+  btn.innerHTML = '<span class="ddl"></span><span class="ddc" aria-hidden="true">▾</span>';
+  sel.before(wrap); wrap.append(btn, sel); sel.classList.add('ddnative'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+  sel._dd = { wrap, btn, l: btn.firstChild };
+  for (const prop of ['value', 'selectedIndex']) { const ds = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop); Object.defineProperty(sel, prop, { configurable: true, get() { return ds.get.call(this); }, set(v) { ds.set.call(this, v); ddRefresh(this); } }); }
+  new MutationObserver(() => ddRefresh(sel)).observe(sel, { childList: true, subtree: true, attributes: true, attributeFilter: ['selected', 'disabled'] });
+  sel.addEventListener('change', () => ddRefresh(sel));
+  btn.addEventListener('click', () => { if (ddCur && ddCur.sel === sel) ddClose(); else ddOpen(sel); });
+  ddRefresh(sel);
+}
+function ddScan(root) { if (root.nodeType !== 1) return; if (root.tagName === 'SELECT') ddEnhance(root); else root.querySelectorAll && root.querySelectorAll('select').forEach(ddEnhance); }
+document.addEventListener('pointerdown', (e) => { if (ddCur && !ddCur.p.contains(e.target) && !e.target.closest('.ddbtn')) ddClose(); }, true);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ddCur) { const b = ddCur.btn; ddClose(); b.focus(); } }, true);
+document.addEventListener('close', () => ddClose(), true);
+addEventListener('resize', ddClose);
+addEventListener('scroll', (e) => { if (ddCur && !ddCur.p.contains(e.target)) ddClose(); }, true);
+new MutationObserver((ms) => { for (const m of ms) { m.addedNodes.forEach(ddScan); } if (ddCur && !ddCur.sel.isConnected) ddClose(); }).observe(document.body, { childList: true, subtree: true });
+ddScan(document.body);
 
 /* ---------- start ---------- */
 (async function init() {
