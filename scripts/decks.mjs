@@ -43,6 +43,7 @@ function compact(d) {
     };
     if (!e.c.length) delete e.c; if (!e.ci) delete e.ci; if (!e.ty) delete e.ty;
     if (o.gameChanger) e.gc = 1; if (o.extraTurns) e.et = 1; if (o.tutor) e.tu = 1; if (o.massLandDenial) e.ml = 1;
+    if (o.manaCost) e.mc = o.manaCost;
     if (isCmd) e.cmd = 1;
     if (maybe) e.bd = 'M'; else if (side) e.bd = 'S';
     cards.push(e);
