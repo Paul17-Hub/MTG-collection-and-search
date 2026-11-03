@@ -441,6 +441,7 @@ details.fpanel[open]>.fgrid{border:1px solid var(--line);border-radius:10px;back
 label>.dd .ddbtn,.cdform .dd .ddbtn,.maprow .dd .ddbtn,.fgrp .dd .ddbtn{width:100%;justify-content:space-between}
 label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
 @media (max-width:899px){.dhead{flex-wrap:wrap}.dpie{flex:1 1 100%}}
+.rbtns{white-space:nowrap}.btn.mini.rej{padding:2px 8px;color:var(--muted)}.btn.mini.rej:hover{color:#d1553a;border-color:#d1553a}.rejbox{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -1449,22 +1450,25 @@ function blkState() {
   b.order = [...(b.order || []).filter((i) => BLK_DEFAULT.includes(i)), ...BLK_DEFAULT.filter((i) => !(b.order || []).includes(i))]; b.open = b.open || {}; b.span = b.span || {}; b.h = b.h || {}; b.r = b.r || 50;
   return b;
 }
-function recsSum(d) { const rd = recsData.decks[d.id]; return rd && rd.lists && rd.lists.length ? `<span class="pill">${rd.lists.reduce((n, l) => n + l.cards.length, 0)} kaarten</span>` : ''; }
+const recRej = (d) => new Set((dmeta(d).rej || []).map(norm));
+const recVisible = (d, L) => { const r = recRej(d); return L.cards.map((c, i) => [c, i]).filter(([c]) => !r.has(norm(c.n))); };
+function recsSum(d) { const rd = recsData.decks[d.id]; return rd && rd.lists && rd.lists.length ? `<span class="pill">${rd.lists.reduce((n, l) => n + recVisible(d, l).length, 0)} kaarten</span>` : ''; }
 function recsHtml(d) {
   const rd = recsData.decks[d.id];
   if (!rd || !rd.lists || !rd.lists.length) return '<div id="recs-block"><div class="hint" style="margin:0">Voor dit deck zijn er nog geen aanbevelingen. Vul bij <b>Plan van het deck</b> je plan in en klik op <b>Kopieer voor Claude</b>. Plak het in het gesprek, dan maak ik een shortlist die hier komt te staan.</div></div>';
   const li = Math.min(deckUI.rl || 0, rd.lists.length - 1), L = rd.lists[li];
   const inDeck = new Set(d.cards.filter((c) => !c.bd).map((c) => norm(c.n))), onMaybe = new Set(d.cards.filter((c) => c.bd).map((c) => norm(c.n)));
-  const rows = L.cards.map((c, i) => {
+  const rejN = (dmeta(d).rej || []).length;
+  const rows = recVisible(d, L).map(([c, i]) => {
     const e = evaluate({ name: c.n, ...(c.id ? { id: c.id } : {}) }), db = e?.c;
     const tag = inDeck.has(norm(c.n)) ? (L.kind === 'art' ? ' <span class="pill">andere art van een kaart die je hebt</span>' : ' <span class="pill">al in je deck</span>') : onMaybe.has(norm(c.n)) ? ' <span class="pill">staat op je maybeboard</span>' : '';
-    return `<tr data-name="${esc(c.n)}"><td><div class="nmq" ${db ? `data-hover="${db.id}"` : ''}>${db ? `<button class="th" data-zoom="${db.id}" aria-label="Vergroot ${esc(c.n)}"><img loading="lazy" alt="" src="${smallImg(db)}"></button>` : ''}<span><b>${esc(c.n)}</b>${tag}<span class="rwhy">${esc(c.why || '')}${db ? ` · ${esc(db.s)} #${esc(db.cn)}` : ''}</span></span></div></td><td class="r num">${e?.p != null ? eur.format(e.p) : '–'}</td><td class="r num hm">${e?.koop != null ? '≤ ' + eur.format(e.koop) : '–'}</td><td class="hm"><span class="sig ${e?.sig || 'geen'}">${e?.sig === 'ja' ? 'JA' : e?.sig === 'nee' ? 'NEE' : '?'}</span></td><td><button class="btn mini" data-radd="${i}">+ Lijst</button></td></tr>`;
+    return `<tr data-name="${esc(c.n)}"><td><div class="nmq" ${db ? `data-hover="${db.id}"` : ''}>${db ? `<button class="th" data-zoom="${db.id}" aria-label="Vergroot ${esc(c.n)}"><img loading="lazy" alt="" src="${smallImg(db)}"></button>` : ''}<span><b>${esc(c.n)}</b>${tag}<span class="rwhy">${esc(c.why || '')}${db ? ` · ${esc(db.s)} #${esc(db.cn)}` : ''}</span></span></div></td><td class="r num">${e?.p != null ? eur.format(e.p) : '–'}</td><td class="r num hm">${e?.koop != null ? '≤ ' + eur.format(e.koop) : '–'}</td><td class="hm"><span class="sig ${e?.sig || 'geen'}">${e?.sig === 'ja' ? 'JA' : e?.sig === 'nee' ? 'NEE' : '?'}</span></td><td class="rbtns"><button class="btn mini" data-radd="${i}">+ Lijst</button> <button class="btn mini rej" data-rrej="${i}" title="Afkeuren: deze kaart komt niet meer terug" aria-label="Keur ${esc(c.n)} af">✕</button></td></tr>`;
   }).join('');
   return `<div id="recs-block">
-      <div class="chips" style="margin-bottom:6px">${rd.lists.map((l, i) => `<button class="chip ${i === li ? 'on' : ''}" data-rl="${i}">${esc(l.name)}<span class="n">${l.cards.length}</span></button>`).join('')}</div>
+      <div class="chips" style="margin-bottom:6px">${rd.lists.map((l, i) => `<button class="chip ${i === li ? 'on' : ''}" data-rl="${i}">${esc(l.name)}<span class="n">${recVisible(d, l).length}</span></button>`).join('')}</div>
       <div class="rnote">${esc(L.note || '')}</div>
       <table class="dtbl"><thead><tr><th>Kaart en reden</th><th class="r">Prijs</th><th class="r hm">Koopadvies</th><th class="hm">Kopen?</th><th></th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="margin-top:8px"><button class="btn mini" data-rall="1">Alles op een lijst zetten</button></div>
+      <div style="margin-top:8px"><button class="btn mini" data-rall="1">Alles op een lijst zetten</button> ${rejN ? `<button class="btn mini" data-rrejlist="1">Afgekeurd (${rejN}) bekijken</button>` : ''}</div>${deckUI.rejOpen && rejN ? `<div class="rejbox"><b>Afgekeurd</b> <span class="hint" style="margin:0">Deze kaarten komen niet meer terug. Klik op een kaart om hem weer toe te laten.</span><div class="chips" style="margin-top:6px">${(dmeta(d).rej || []).map((n, k) => `<button class="chip" data-rundo="${k}">${esc(n)} ↩</button>`).join('')}</div></div>` : ''}
       <div class="hint">${esc(rd.basis || '')}${rd.updated ? ' Bijgewerkt op ' + esc(rd.updated) + '.' : ''}</div>
     </div>`;
 }
@@ -1610,6 +1614,7 @@ function deckSummary(d) {
   L.push('', `Hoofddeck (${qsum(main)} kaarten):`); for (const c of main) L.push(`${c.q} ${c.n}`);
   if (side.length) { L.push('', 'Sideboard:'); for (const c of side) L.push(`${c.q} ${c.n}`); }
   if (maybe.length) { L.push('', 'Maybeboard:'); for (const c of maybe) L.push(`${c.q} ${c.n}`); }
+  if ((m.rej || []).length) L.push('', `Eerder afgekeurd door mij, stel deze NIET meer voor: ${m.rej.join(', ')}`);
   L.push('', `Vraag: Geef een shortlist met aanbevelingen (nieuwe kaarten, oudere kaarten en nieuwe art voor reprints) die bij dit deck passen. Maak een lijst die binnen bracket ${d.bracket || 3} blijft en een aanvullende lijst voor bracket 4, met een reden per kaart, als csv die ik in mijn app kan importeren.`);
   return L.join('\n');
 }
@@ -1649,12 +1654,16 @@ $('deck-body').addEventListener('click', (e) => {
   if (dfc) { const S = { dtypes: deckF.types, dcolors: deckF.colors, dmvs: deckF.mvs, drar: deckF.rar }[dfc.dataset.k], v = dfc.dataset.k === 'dmvs' ? +dfc.dataset.v : dfc.dataset.v; S.has(v) ? S.delete(v) : S.add(v); renderDeckFilterUI(); const dd = curDeckObj(); if (dd) renderDeckCards(dd); return; }
   if (e.target.closest('#dk-fclear')) { deckF.types.clear(); deckF.colors.clear(); deckF.mvs.clear(); deckF.rar.clear(); deckF.pmin = deckF.pmax = null; if ($('dk-pmin')) $('dk-pmin').value = ''; if ($('dk-pmax')) $('dk-pmax').value = ''; renderDeckFilterUI(); const dd = curDeckObj(); if (dd) renderDeckCards(dd); return; }
   const rl = e.target.closest('[data-rl]'); if (rl) { deckUI.rl = +rl.dataset.rl; renderDecks(); return; }
+  const rr = e.target.closest('[data-rrej]');
+  if (rr) { const dd = curDeckObj(), L = recsData.decks[dd?.id]?.lists?.[Math.min(deckUI.rl || 0, 99)], c = L?.cards[+rr.dataset.rrej]; if (c) { const m = dmeta(dd); m.rej = [...(m.rej || []), c.n]; persist(); renderDecks(); note(`“${c.n}” is afgekeurd en komt niet meer terug bij dit deck.`, 4000); } return; }
+  if (e.target.closest('[data-rrejlist]')) { deckUI.rejOpen = !deckUI.rejOpen; renderDecks(); return; }
+  const ru = e.target.closest('[data-rundo]'); if (ru) { const dd = curDeckObj(); if (dd) { const m = dmeta(dd); m.rej = (m.rej || []).filter((_, k) => k !== +ru.dataset.rundo); if (!m.rej.length) deckUI.rejOpen = false; persist(); renderDecks(); } return; }
   const ra = e.target.closest('[data-radd]');
   if (ra) { const dd = curDeckObj(), L = recsData.decks[dd?.id]?.lists?.[Math.min(deckUI.rl || 0, 99)], c = L?.cards[+ra.dataset.radd]; if (c) openAddLists({ mode: 'card', name: c.n, id: c.id || null }); return; }
   if (e.target.closest('[data-rall]')) {
     const dd = curDeckObj(), L = recsData.decks[dd?.id]?.lists?.[deckUI.rl || 0]; if (!dd || !L) return;
     const nm = `${dd.name}: ${L.name}`; if (!(state.lists || []).includes(nm)) state.lists = [...(state.lists || []), nm];
-    let n = 0; for (const c of L.cards) { if (state.items.some((i) => norm(i.name) === norm(c.n) && (i.id || null) === (c.id || null) && i.deck === nm)) continue; state.items.push({ name: c.n, ...(c.id ? { id: c.id } : {}), deck: nm, u: uid() }); n++; }
+    const rj = recRej(dd); let n = 0; for (const c of L.cards) { if (rj.has(norm(c.n))) continue; if (state.items.some((i) => norm(i.name) === norm(c.n) && (i.id || null) === (c.id || null) && i.deck === nm)) continue; state.items.push({ name: c.n, ...(c.id ? { id: c.id } : {}), deck: nm, u: uid() }); n++; }
     const m2 = dmeta(dd); if (!(m2.lists || []).includes(nm)) m2.lists = [...(m2.lists || []), nm];
     persist(); runSearch(); renderWantlist(); renderDecks(); note(`${n} kaarten op de lijst “${nm}” gezet. Je ziet de prijzen en JA-signalen in Alle kaarten.`, 4500); return;
   }
