@@ -1,6 +1,6 @@
 {
-  "name": "Wantlist prijzen",
-  "short_name": "Wantlist",
+  "name": "MTG Collection and search",
+  "short_name": "MTG Collection",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
