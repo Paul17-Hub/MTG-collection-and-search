@@ -393,6 +393,34 @@ details.dblock:not([open])>.rz{display:none}
 .dsplit::after{content:"";position:absolute;left:6px;top:0;bottom:0;width:2px;border-radius:1px;background:transparent}
 .dsplit:hover::after,.dsplit.on::after{background:var(--accent)}
 @media (max-width:899px){.dlayout{display:block}.dlayout>.dblock{margin:0 0 12px}.dsplit{display:none}.mvs [data-sp]{display:none}}
+[hidden]{display:none!important}
+.ficon{flex:none}
+details.fpanel{border:0;background:none;border-radius:0}
+details.fpanel>summary{display:inline-flex;align-items:center;gap:8px;list-style:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 14px;min-height:40px;font-weight:600;font-size:14px;cursor:pointer;user-select:none}
+details.fpanel>summary::-webkit-details-marker{display:none}
+details.fpanel[open]>summary,details.fpanel>summary:has(.fbadge:not(:empty)){border-color:var(--accent)}
+details.fpanel>summary .fbadge{background:var(--accent);color:var(--accent-ink);border-radius:999px;min-width:20px;padding:1px 7px;font-size:12px;text-align:center;font-weight:700}
+details.fpanel>summary .fbadge:empty{display:none}
+details.fpanel[open]>.fgrid{border:1px solid var(--line);border-radius:10px;background:var(--bg);margin-top:8px;padding:12px}
+.ddsort{display:flex;gap:6px;margin:0 0 6px}
+.ddsb{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 4px;font-size:13px}
+.ddsb[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ddyr{opacity:.6;margin-left:8px;font-size:12px;font-weight:400}
+.ddopt>span:first-child{flex:1;min-width:0}
+.slist{display:grid;gap:6px;margin:10px 0}
+.srow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+.srow:hover{border-color:var(--accent)}
+.sname{flex:1;min-width:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.scode{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.smeta{color:var(--muted);font-size:13px;white-space:nowrap}
+.sgo{color:var(--muted);font-size:20px}
+.shead{display:flex;gap:8px;align-items:baseline;margin:6px 0 2px}
+.sbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+.sbt{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+#sec-search details.fpanel{margin-top:10px}
+.ssort{display:flex;align-items:center;gap:8px}
+#sec-search .pick-grid{margin:10px 0}
+#s-more{display:block;margin:12px auto}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -433,14 +461,14 @@ details.dblock:not([open])>.rz{display:none}
       <button class="btn" id="btn-import">Lijst importeren</button>
     </div>
     <details class="fpanel" id="fpanel">
-      <summary>Filters <span id="fcount"></span></summary>
+      <summary><svg class="ficon" viewBox="0 0 512 512" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="34" stroke-linecap="round"><path d="M30 122H110M202 122H482M30 255H336M428 255H482M30 388H182M274 388H482"/><circle cx="156" cy="122" r="44"/><circle cx="382" cy="255" r="44"/><circle cx="228" cy="388" r="44"/></svg><span>Filters</span><span class="fbadge" id="fcount"></span></summary>
       <div class="fgrid">
         <div class="fgrp"><b>Prijs (Cardmarket-trend)</b><div class="fprice"><input id="f-pmin" type="number" min="0" step="0.5" inputmode="decimal" placeholder="van €" aria-label="Prijs vanaf"> – <input id="f-pmax" type="number" min="0" step="0.5" inputmode="decimal" placeholder="tot €" aria-label="Prijs tot"></div></div>
         <div class="fgrp" data-meta><b>Type</b><div class="fchips" id="f-types"></div></div>
         <div class="fgrp" data-meta><b>Kleur</b><div class="fchips" id="f-colors"></div></div>
         <div class="fgrp" data-meta><b>Mana value</b><div class="fchips" id="f-mv"></div></div>
         <div class="fgrp"><b>Zeldzaamheid</b><div class="fchips" id="f-rar"></div></div>
-        <div class="fgrp"><b>Set</b><select id="f-set" aria-label="Set"><option value="">Alle sets</option></select></div>
+        <div class="fgrp"><b>Set</b><select id="f-set" aria-label="Set" data-sorts><option value="">Alle sets</option></select></div>
         <label class="chk"><input type="checkbox" id="f-ja"> Alleen kaarten met JA (onder je drempel)</label>
         <p class="hint" id="f-meta-note" hidden style="margin:0">De gegevens voor type, kleur en mana value zijn nog niet geladen. Tik bovenaan op Synchroniseer.</p>
         <div><button class="btn" id="f-clear">Wis filters</button></div>
@@ -493,10 +521,10 @@ details.dblock:not([open])>.rz{display:none}
     </div>
     <div class="chips" id="c-views" role="group" aria-label="Weergave"></div>
     <details class="fpanel" id="c-fpanel">
-      <summary>Filters <span id="cf-count"></span></summary>
+      <summary><svg class="ficon" viewBox="0 0 512 512" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="34" stroke-linecap="round"><path d="M30 122H110M202 122H482M30 255H336M428 255H482M30 388H182M274 388H482"/><circle cx="156" cy="122" r="44"/><circle cx="382" cy="255" r="44"/><circle cx="228" cy="388" r="44"/></svg><span>Filters</span><span class="fbadge" id="cf-count"></span></summary>
       <div class="fgrid">
         <div class="fgrp"><b>Plek</b><select id="cf-place" aria-label="Plek"></select><label class="chk"><input type="checkbox" id="cf-noplace"> Alleen kaarten zonder plek</label></div>
-        <div class="fgrp"><b>Set</b><select id="cf-set" aria-label="Set"></select></div>
+        <div class="fgrp"><b>Set</b><select id="cf-set" aria-label="Set" data-sorts></select></div>
         <div class="fgrp"><b>Foil</b><select id="cf-foil" aria-label="Foil"><option value="">Foil en niet-foil</option><option value="1">Alleen foil</option><option value="0">Alleen niet-foil</option></select></div>
         <div class="fgrp"><b>Conditie en taal</b><div style="display:flex;gap:8px"><select id="cf-cond" aria-label="Conditie"></select><select id="cf-lang" aria-label="Taal"></select></div></div>
         <div class="fgrp"><b>Prijs per stuk vanaf (€)</b><input id="cf-pmin" type="number" min="0" step="0.5" inputmode="decimal" placeholder="bijv. 5" aria-label="Prijs per stuk vanaf" style="padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:110px"></div>
@@ -525,10 +553,28 @@ details.dblock:not([open])>.rz{display:none}
   <section class="card" id="sec-search" aria-label="Zoeken">
     <h2>Kaart zoeken</h2>
     <div class="searchbar">
-      <input id="q" type="search" placeholder="Typ een kaartnaam…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Kaartnaam">
+      <input id="q" type="search" placeholder="Typ een kaartnaam of set…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Kaartnaam of set">
       <button class="btn" id="btn-scan" title="Kaart scannen met de camera">Scan</button>
     </div>
+    <div class="chips" id="s-modes" role="group" aria-label="Zoeken in" style="margin-top:10px"><button type="button" class="chip on" id="s-m-cards">Kaarten</button><button type="button" class="chip" id="s-m-sets">Sets</button></div>
+    <details class="fpanel" id="s-fpanel">
+      <summary><svg class="ficon" viewBox="0 0 512 512" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="34" stroke-linecap="round"><path d="M30 122H110M202 122H482M30 255H336M428 255H482M30 388H182M274 388H482"/><circle cx="156" cy="122" r="44"/><circle cx="382" cy="255" r="44"/><circle cx="228" cy="388" r="44"/></svg><span>Filters</span><span class="fbadge" id="sf-count"></span></summary>
+      <div class="fgrid">
+        <div class="fgrp"><b>Prijs (Cardmarket-trend)</b><div class="fprice"><input id="sf-pmin" type="number" min="0" step="0.5" inputmode="decimal" placeholder="van €" aria-label="Prijs vanaf"> – <input id="sf-pmax" type="number" min="0" step="0.5" inputmode="decimal" placeholder="tot €" aria-label="Prijs tot"></div></div>
+        <div class="fgrp" data-meta><b>Type</b><div class="fchips" id="sf-types"></div></div>
+        <div class="fgrp" data-meta><b>Kleur</b><div class="fchips" id="sf-colors"></div></div>
+        <div class="fgrp" data-meta><b>Mana value</b><div class="fchips" id="sf-mv"></div></div>
+        <div class="fgrp"><b>Zeldzaamheid</b><div class="fchips" id="sf-rar"></div></div>
+        <div class="fgrp" id="sf-setgrp"><b>Set</b><select id="sf-set" aria-label="Set" data-sorts><option value="">Alle sets</option></select></div>
+        <p class="hint" id="sf-note" hidden style="margin:0">De gegevens voor type, kleur en mana value zijn nog niet geladen. Tik bovenaan op Synchroniseer.</p>
+        <div><button class="btn" id="sf-clear">Wis filters</button></div>
+      </div>
+    </details>
+    <div class="sbar" id="s-bar" hidden></div>
+    <div class="slist" id="s-sets"></div>
     <ul class="res" id="results"></ul>
+    <div class="pick-grid" id="s-grid" hidden></div>
+    <button class="btn" id="s-more" hidden></button>
     <p class="foot" id="search-foot"></p>
   </section>
   <section class="card" id="sec-decks" aria-label="Decks">
@@ -815,7 +861,7 @@ function indexCards(payload) {
   names = [...byName.values()];
   byFace = new Map(); for (const g of names) if (g.name.includes(' // ')) byFace.set(norm(g.name.split(' // ')[0]), g);
   bySetCn = new Map(); for (const c of cards) bySetCn.set(c.s + '|' + c.cn, c);
-  setCodes = new Set(cards.map((c) => c.s));
+  setCodes = new Set(cards.map((c) => c.s)); setInfoC = null;
   bigramCache = null; collDer = null; cDirty = true; if (document.body.dataset.tab === 'coll') cRender();
 }
 const price = (c) => (c.f ? (c.tf ?? null) : (c.t ?? null));   // alleen-foil kaarten: foil-prijs
@@ -894,7 +940,7 @@ function renderResults(list) {
   if (!list.length) { ul.innerHTML = ''; $('search-foot').textContent = $('q').value.trim().length >= 2 ? 'Niets gevonden. Probeer een deel van de naam.' : (cards.length ? 'Typ minstens twee letters.' : 'Synchroniseer eerst om de kaarten te laden.'); return; }
   $('search-foot').textContent = 'Tik op een kaart om de uitvoering te kiezen.';
   ul.innerHTML = list.map((g) => {
-    const c = cheapest(g), p = price(c), nl = new Set(state.items.filter((i) => norm(i.name) === g.key).map((i) => i.deck || '')).size;
+    const c = cheapest(sActive() ? { list: g.list.filter(passSF) } : g), p = price(c), nl = new Set(state.items.filter((i) => norm(i.name) === g.key).map((i) => i.deck || '')).size;
     return `<li><div class="row" data-open="${esc(g.key)}" role="button" tabindex="0" aria-label="${esc(g.name)}: kies uitvoering">
       <img loading="lazy" alt="" src="${smallImg(c)}">
       <div class="t"><b>${esc(g.name)}</b><span>${g.list.length} ${g.list.length === 1 ? 'uitvoering' : 'uitvoeringen'}</span></div>
@@ -999,10 +1045,10 @@ function renderFilterUI() {
   $('f-mv').innerHTML = chipsHtml([0, 1, 2, 3, 4, 5, 6, 7].map((n) => [n, n === 7 ? '7+' : String(n)]), flt.mvs, 'mvs');
   $('f-rar').innerHTML = chipsHtml(RARS, flt.rar, 'rar');
   const sm = new Map(); for (const it of state.items) { const c = resolve(it); if (c) sm.set(c.s, c.sn); }
-  $('f-set').innerHTML = '<option value="">Alle sets</option>' + [...sm].sort((x, y) => x[1].localeCompare(y[1])).map(([c, n]) => `<option value="${esc(c)}">${esc(n)} (${esc(c)})</option>`).join('');
+  $('f-set').innerHTML = '<option value="">Alle sets</option>' + [...sm].sort((x, y) => x[1].localeCompare(y[1])).map(([c, n]) => `<option value="${esc(c)}" data-d="${esc((setInfo().get(c) || {}).d || '')}">${esc(n)} (${esc(c)})</option>`).join('');
   $('f-set').value = flt.set;
   const meta = hasMeta(); document.querySelectorAll('#fpanel [data-meta]').forEach((el) => { el.style.opacity = meta ? '' : '.45'; }); $('f-meta-note').hidden = meta;
-  const n = countFilters(); $('fcount').textContent = n ? `(${n} actief)` : '';
+  const n = countFilters(); $('fcount').textContent = n ? String(n) : '';
 }
 function passFilters(r) {
   const c = r.e?.c; if (!c) return false;
@@ -1156,7 +1202,7 @@ async function scanGo() {
 }
 
 /* ---------- events ---------- */
-let qTimer; const runSearch = () => renderResults(search($('q').value));
+let qTimer; const runSearch = () => sRender();
 $('q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(runSearch, 120); });
 $('results').addEventListener('click', (e) => {
   const add = e.target.closest('[data-add]');
@@ -1407,7 +1453,7 @@ function renderDeckFilterUI() {
   const set = (id, html) => { const el = $(id); if (el) el.innerHTML = html; };
   set('dk-ftypes', chipsHtml(TYPES, deckF.types, 'dtypes')); set('dk-fcolors', chipsHtml(COLORS, deckF.colors, 'dcolors'));
   set('dk-fmv', chipsHtml([0, 1, 2, 3, 4, 5, 6, 7].map((n) => [n, n === 7 ? '7+' : String(n)]), deckF.mvs, 'dmvs')); set('dk-frar', chipsHtml(RARS, deckF.rar, 'drar'));
-  const n = countDeckFilters(), el = $('dk-fcount'); if (el) el.textContent = n ? `(${n} actief)` : '';
+  const n = countDeckFilters(), el = $('dk-fcount'); if (el) el.textContent = n ? String(n) : '';
 }
 function passDeckFilters(c, db, p) {
   if (deckF.types.size && ![...deckF.types].some((t) => (c.ty || '').includes(t))) return false;
@@ -1501,7 +1547,7 @@ function renderDecks() {
         <select id="dk-board" aria-label="Bord"><option value="main" ${deckUI.board === 'main' ? 'selected' : ''}>Hoofddeck</option><option value="S" ${deckUI.board === 'S' ? 'selected' : ''}>Sideboard</option><option value="M" ${deckUI.board === 'M' ? 'selected' : ''}>Maybeboard</option><option value="all" ${deckUI.board === 'all' ? 'selected' : ''}>Alles</option></select>
       </div>
       <details class="fpanel" id="dk-fpanel" ${anyDeckFilter() ? 'open' : ''}>
-        <summary>Filters <span id="dk-fcount"></span></summary>
+        <summary><svg class="ficon" viewBox="0 0 512 512" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="34" stroke-linecap="round"><path d="M30 122H110M202 122H482M30 255H336M428 255H482M30 388H182M274 388H482"/><circle cx="156" cy="122" r="44"/><circle cx="382" cy="255" r="44"/><circle cx="228" cy="388" r="44"/></svg><span>Filters</span><span class="fbadge" id="dk-fcount"></span></summary>
         <div class="fgrid">
           <div class="fgrp"><b>Type</b><div class="fchips" id="dk-ftypes"></div></div>
           <div class="fgrp"><b>Kleur (kleuridentiteit)</b><div class="fchips" id="dk-fcolors"></div></div>
@@ -1772,7 +1818,7 @@ $('btn-scan').addEventListener('click', openScan);
 $('scan-close').addEventListener('click', closeScan);
 $('dlg-scan').addEventListener('close', () => { if (stream) closeScan(); });
 $('scan-go').addEventListener('click', scanGo);
-$('scan-res').addEventListener('click', (e) => { const t = e.target.closest('[data-pick]'); if (!t) return; const g = byName.get(t.dataset.pick); closeScan(); $('q').value = g.name; setTab('search'); runSearch(); openPicker(g, scanHint); });
+$('scan-res').addEventListener('click', (e) => { const t = e.target.closest('[data-pick]'); if (!t) return; const g = byName.get(t.dataset.pick); closeScan(); sS.set = ''; sS.mode = 'cards'; $('q').value = g.name; setTab('search'); runSearch(); openPicker(g, scanHint); });
 $('btn-io').addEventListener('click', () => { $('io-text').value = JSON.stringify({ items: state.items, lists: state.lists, deckMeta: state.deckMeta, deckBlocks: state.deckBlocks, comboOv: state.comboOv, thr: state.thr, ship: state.ship, disc: state.disc }); $('dlg-io').showModal(); });
 $('io-close').addEventListener('click', () => $('dlg-io').close());
 $('io-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('io-text').value); note('Gekopieerd.', 2000); } catch { $('io-text').select(); } });
@@ -2161,11 +2207,11 @@ function cFilterUI(all) {
   $('cf-col').innerHTML = chips(COLORS, cv.col, 'col'); $('cf-ty').innerHTML = chips(TYPES, cv.ty, 'ty'); $('cf-rar').innerHTML = chips(RARS, cv.rar, 'rar');
   const places = cPlaces(), sm = new Map(); for (const it of all) if (it.c) sm.set(it.c.s, it.c.sn);
   $('cf-place').innerHTML = '<option value="">Alle plekken</option>' + places.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join(''); $('cf-place').value = cv.place;
-  $('cf-set').innerHTML = '<option value="">Alle sets</option>' + [...sm].sort((a, b) => collator.compare(a[1], b[1])).map(([c, n]) => `<option value="${esc(c)}">${esc(n)} (${esc(c)})</option>`).join(''); $('cf-set').value = cv.set;
+  $('cf-set').innerHTML = '<option value="">Alle sets</option>' + [...sm].sort((a, b) => collator.compare(a[1], b[1])).map(([c, n]) => `<option value="${esc(c)}" data-d="${esc((setInfo().get(c) || {}).d || '')}">${esc(n)} (${esc(c)})</option>`).join(''); $('cf-set').value = cv.set;
   $('cf-foil').value = cv.foil; $('cf-cond').innerHTML = '<option value="">Alle condities</option>' + CONDS.map((c) => `<option>${c}</option>`).join(''); $('cf-cond').value = cv.cond;
   $('cf-lang').innerHTML = '<option value="">Alle talen</option>' + LANGS.map((c) => `<option>${c}</option>`).join(''); $('cf-lang').value = cv.lang;
   $('cf-pmin').value = cv.pmin ?? ''; $('cf-guess').checked = cv.guess; $('cf-noplace').checked = cv.noplace;
-  const nn = cActive(); $('cf-count').textContent = nn ? `(${nn} actief)` : '';
+  const nn = cActive(); $('cf-count').textContent = nn ? String(nn) : '';
   const meta_ = hasMeta(); document.querySelectorAll('#c-fpanel [data-meta]').forEach((el) => { el.style.opacity = meta_ ? '' : '.45'; });
 }
 function cRenderPlaces(all) {
@@ -2606,6 +2652,138 @@ $('deck-body').addEventListener('dblclick', (e) => {
   if (rz) { delete b.h[rz.dataset.rz]; const body = rz.closest('details').querySelector('.dbody'); body.style.height = ''; body.classList.remove('sized'); persist(); }
   else if (sp) { b.r = 50; persist(); renderDecks(); }
 });
+/* ---------- sets en Zoeken: bladeren per set, filters ---------- */
+let setInfoC = null;
+function setInfo() {
+  if (setInfoC && setInfoC.n === cards.length) return setInfoC.m;
+  const m = new Map();
+  for (const c of cards) { let s = m.get(c.s); if (!s) { s = { code: c.s, name: c.sn, d: '', n: 0, list: [] }; m.set(c.s, s); } s.n++; s.list.push(c); if (c.d && (!s.d || c.d < s.d)) s.d = c.d; }
+  setInfoC = { n: cards.length, m }; return m;
+}
+const SETSORT = [['new', 'Nieuwste'], ['old', 'Oudste'], ['az', 'A–Z']];
+const setSortMode = () => (['new', 'old', 'az'].includes(state.setSort) ? state.setSort : 'new');
+const setCmp = (mode) => (a, b) => {
+  if (mode !== 'az') { const x = a.d || '', y = b.d || ''; if (x !== y) { if (!x) return 1; if (!y) return -1; return mode === 'new' ? y.localeCompare(x) : x.localeCompare(y); } }
+  return collator.compare(a.n, b.n);
+};
+const fmtSetDate = (d) => { if (!d) return ''; const t = new Date(d + 'T00:00:00'); return isNaN(t) ? d.slice(0, 4) : t.toLocaleDateString('nl-NL', { month: 'short', year: 'numeric' }); };
+const sf = { pmin: null, pmax: null, types: new Set(), colors: new Set(), mvs: new Set(), rar: new Set(), set: '' };
+const sS = { mode: 'cards', set: '', sort: 'num', view: 'list', limit: 100, slimit: 120 };
+const sActive = () => (sf.pmin != null || sf.pmax != null ? 1 : 0) + (sf.types.size ? 1 : 0) + (sf.colors.size ? 1 : 0) + (sf.mvs.size ? 1 : 0) + (sf.rar.size ? 1 : 0) + (sf.set && !sS.set ? 1 : 0);
+function passSF(c) {
+  const p = price(c);
+  if (sf.pmin != null && !(p != null && p >= sf.pmin)) return false;
+  if (sf.pmax != null && !(p != null && p <= sf.pmax)) return false;
+  if (sf.types.size && ![...sf.types].some((t) => (c.ty || '').includes(t))) return false;
+  if (sf.colors.size) { const co = c.co || ''; if (![...sf.colors].some((x) => (x === 'C' ? co === '' : x === 'M' ? co.length > 1 : co.includes(x)))) return false; }
+  if (sf.mvs.size && !sf.mvs.has(Math.min(c.mv ?? 0, 7))) return false;
+  if (sf.rar.size && !sf.rar.has(c.r)) return false;
+  if (sf.set && !sS.set && c.s !== sf.set) return false;
+  return true;
+}
+function setMatches(q) {
+  const nq = norm(q); if (nq.length < 2) return [];
+  const toks = nq.split(' '), out = [];
+  for (const s of setInfo().values()) { const n = norm(s.name), cd = s.code.toLowerCase(); if (toks.every((t) => n.includes(t) || cd === t)) out.push(s); }
+  const cmp = setCmp(setSortMode());
+  const rk = (s) => (s.code.toLowerCase() === nq ? 0 : norm(s.name) === nq ? 1 : norm(s.name).startsWith(nq) ? 2 : 3);
+  return out.sort((a, b) => rk(a) - rk(b) || cmp(a, b));
+}
+const setRow = (s) => `<button type="button" class="srow" data-set="${esc(s.code)}"><span class="sname"><b>${esc(s.name)}</b><span class="scode">${esc(s.code)}</span></span><span class="smeta">${esc(fmtSetDate(s.d))}${s.d ? ' · ' : ''}${s.n.toLocaleString('nl-NL')} ${s.n === 1 ? 'kaart' : 'kaarten'}</span><span class="sgo" aria-hidden="true">›</span></button>`;
+const sSortFns = {
+  num: (a, b) => collator.compare(a.cn, b.cn),
+  name: (a, b) => collator.compare(a.n, b.n) || collator.compare(a.cn, b.cn),
+  hi: (a, b) => (price(b) ?? -1) - (price(a) ?? -1) || collator.compare(a.n, b.n),
+  lo: (a, b) => (price(a) ?? 1e9) - (price(b) ?? 1e9) || collator.compare(a.n, b.n),
+  rar: (a, b) => 'mrusbc'.indexOf(a.r) - 'mrusbc'.indexOf(b.r) || collator.compare(a.cn, b.cn)
+};
+function renderSearchUI() {
+  const inSet = !!sS.set, setsMode = sS.mode === 'sets' && !inSet;
+  $('s-m-cards').classList.toggle('on', sS.mode === 'cards'); $('s-m-sets').classList.toggle('on', sS.mode === 'sets');
+  $('s-modes').hidden = inSet;
+  $('q').placeholder = inSet ? 'Zoek in deze set…' : setsMode ? 'Zoek een set…' : 'Typ een kaartnaam of set…';
+  $('q').setAttribute('aria-label', inSet ? 'Zoek in deze set' : setsMode ? 'Set zoeken' : 'Kaartnaam of set');
+  $('s-fpanel').hidden = setsMode; $('sf-setgrp').hidden = inSet;
+  const si = setInfo();
+  if ($('sf-set').dataset.n !== String(si.size)) { $('sf-set').innerHTML = '<option value="">Alle sets</option>' + [...si.values()].sort((a, b) => collator.compare(a.name, b.name)).map((s) => `<option value="${esc(s.code)}" data-d="${esc(s.d)}">${esc(s.name)} (${esc(s.code)})</option>`).join(''); $('sf-set').dataset.n = String(si.size); }
+  $('sf-set').value = sf.set;
+  $('sf-types').innerHTML = chipsHtml(TYPES, sf.types, 'stypes'); $('sf-colors').innerHTML = chipsHtml(COLORS, sf.colors, 'scolors');
+  $('sf-mv').innerHTML = chipsHtml([0, 1, 2, 3, 4, 5, 6, 7].map((n) => [n, n === 7 ? '7+' : String(n)]), sf.mvs, 'smvs'); $('sf-rar').innerHTML = chipsHtml(RARS, sf.rar, 'srar');
+  const meta = hasMeta(); document.querySelectorAll('#s-fpanel [data-meta]').forEach((el) => { el.style.opacity = meta ? '' : '.45'; }); $('sf-note').hidden = meta;
+  const n = sActive(); $('sf-count').textContent = n ? String(n) : '';
+  const bar = $('s-bar'); bar.hidden = !(inSet || setsMode);
+  if (inSet) {
+    const S = si.get(sS.set);
+    bar.innerHTML = `<button type="button" class="btn" data-sback>‹ Alle sets</button><div class="sbt"><b>${esc(S.name)}</b> <span class="scode">${esc(S.code)}</span><span class="hint" style="margin:0">${esc(fmtSetDate(S.d))}${S.d ? ' · ' : ''}${S.n.toLocaleString('nl-NL')} kaarten</span></div>
+      <label class="ssort"><span class="hint" style="margin:0">Sorteren</span><select id="s-sort" aria-label="Sorteren">${[['num', 'Kaartnummer'], ['name', 'Naam'], ['hi', 'Prijs hoog → laag'], ['lo', 'Prijs laag → hoog'], ['rar', 'Zeldzaamheid']].map(([k, l]) => `<option value="${k}" ${sS.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <div class="chips" style="margin:0" role="group" aria-label="Weergave"><button type="button" class="chip ${sS.view === 'list' ? 'on' : ''}" data-sview="list">Lijst</button><button type="button" class="chip ${sS.view === 'grid' ? 'on' : ''}" data-sview="grid">Raster</button></div>`;
+  } else if (setsMode) {
+    bar.innerHTML = `<div class="chips" style="margin:0" role="group" aria-label="Sets sorteren"><span class="hint" style="margin:0 4px 0 0;align-self:center">Volgorde</span>${SETSORT.map(([k, l]) => `<button type="button" class="chip ${setSortMode() === k ? 'on' : ''}" data-ssort="${k}">${k === 'new' ? 'Nieuwste eerst' : k === 'old' ? 'Oudste eerst' : l}</button>`).join('')}</div>`;
+  }
+}
+function sRender() {
+  if (!cards.length) { renderResults([]); return; }
+  renderSearchUI();
+  const ul = $('results'), grid = $('s-grid'), sets = $('s-sets'), more = $('s-more');
+  sets.innerHTML = ''; grid.innerHTML = ''; grid.hidden = true; more.hidden = true; ul.hidden = false;
+  const qv = $('q').value, si = setInfo();
+  if (sS.set) return sRenderSet(qv);
+  if (sS.mode === 'sets') {
+    const nq = norm(qv), toks = nq ? nq.split(' ') : [], cmp = setCmp(setSortMode());
+    const all = [...si.values()].filter((s) => !toks.length || toks.every((t) => norm(s.name).includes(t) || s.code.toLowerCase() === t)).sort(cmp);
+    ul.hidden = true; sets.innerHTML = all.slice(0, sS.slimit).map(setRow).join('') || '<div class="empty">Geen sets gevonden.</div>';
+    more.hidden = all.length <= sS.slimit; more.dataset.k = 'sets'; more.textContent = `Toon meer sets (${all.length - sS.slimit} te gaan)`;
+    $('search-foot').textContent = `${all.length.toLocaleString('nl-NL')} ${all.length === 1 ? 'set' : 'sets'}. Tik op een set om de kaarten te zien.`; return;
+  }
+  const sm = setMatches(qv);
+  if (sm.length) sets.innerHTML = `<div class="shead"><b>Sets</b><span class="hint" style="margin:0">${sm.length} ${sm.length === 1 ? 'set past' : 'sets passen'} bij je zoekopdracht</span></div>${sm.slice(0, 5).map(setRow).join('')}${sm.length > 5 ? `<button type="button" class="btn mini" data-allsets>Alle ${sm.length} sets tonen</button>` : ''}`;
+  let list = search(qv, sActive() ? 400 : 40);
+  if (sActive()) list = list.filter((g) => g.list.some(passSF));
+  renderResults(list);
+  if (!list.length && sm.length) $('search-foot').textContent = 'Geen kaarten met deze naam, maar wel sets. Tik op een set hierboven.';
+}
+function sRenderSet(qv) {
+  const S = setInfo().get(sS.set), nq = norm(qv);
+  let L = S.list.filter((c) => (!nq || norm(c.n).includes(nq)) && passSF(c)).sort(sSortFns[sS.sort] || sSortFns.num);
+  const shown = L.slice(0, sS.limit), ul = $('results'), grid = $('s-grid'), more = $('s-more');
+  if (sS.view === 'grid') {
+    ul.hidden = true; grid.hidden = false;
+    grid.innerHTML = shown.map((c) => { const p = price(c); return `<button type="button" class="pick" data-card="${c.id}" aria-label="${esc(c.n)} nummer ${esc(c.cn)}"><img loading="lazy" alt="" src="${smallImg(c)}"><b>${esc(c.n)}</b><span>#${esc(c.cn)} · ${p != null ? eur.format(p) : '–'}</span></button>`; }).join('');
+  } else {
+    ul.innerHTML = shown.map((c) => { const p = price(c); return `<li><div class="row" data-card="${c.id}" role="button" tabindex="0" aria-label="${esc(c.n)}: bekijk kaart"><img loading="lazy" alt="" src="${smallImg(c)}"><div class="t"><b>${esc(c.n)}</b><span>#${esc(c.cn)} · ${esc(RARITY[c.r] || '')}${c.f ? ' · alleen foil' : ''}</span></div><div class="p num">${p != null ? '<b>' + eur.format(p) + '</b>' : '–'}</div><button class="btn mini" data-addc="${c.id}" title="Aan lijst(en) toevoegen">+ Lijst</button></div></li>`; }).join('');
+  }
+  more.hidden = L.length <= sS.limit; more.dataset.k = 'cards'; more.textContent = `Toon meer kaarten (${L.length - sS.limit} te gaan)`;
+  let tot = 0; for (const c of L) tot += price(c) || 0;
+  $('search-foot').textContent = L.length ? `${L.length.toLocaleString('nl-NL')} van ${S.n.toLocaleString('nl-NL')} kaarten · samen ${eur.format(tot)} (Cardmarket-trend). Tik op een kaart voor details.` : 'Geen kaarten in deze set die aan je zoekopdracht en filters voldoen.';
+  if (!L.length) { ul.hidden = false; ul.innerHTML = ''; grid.hidden = true; }
+}
+function sOpenSet(code) { sS.set = code; sS.limit = 100; $('q').value = ''; sRender(); $('sec-search').scrollIntoView({ block: 'start' }); }
+{
+  const sec = $('sec-search');
+  sec.addEventListener('click', (e) => {
+    const t = e.target;
+    let b;
+    if ((b = t.closest('[data-set]'))) { sOpenSet(b.dataset.set); return; }
+    if (t.closest('[data-sback]')) { sS.set = ''; sS.mode = 'sets'; $('q').value = ''; sRender(); return; }
+    if ((b = t.closest('[data-ssort]'))) { state.setSort = b.dataset.ssort; persist(); sRender(); return; }
+    if ((b = t.closest('[data-sview]'))) { sS.view = b.dataset.sview; sRender(); return; }
+    if (t.closest('#s-m-cards')) { sS.mode = 'cards'; sRender(); return; }
+    if (t.closest('#s-m-sets')) { sS.mode = 'sets'; sS.slimit = 120; sRender(); return; }
+    if (t.closest('[data-allsets]')) { sS.mode = 'sets'; sS.slimit = 120; sRender(); return; }
+    if (t.closest('#s-more')) { if ($('s-more').dataset.k === 'sets') sS.slimit += 120; else sS.limit += 100; sRender(); return; }
+    if ((b = t.closest('[data-addc]'))) { const c = byId.get(+b.dataset.addc); if (c) openAddLists({ mode: 'card', name: c.n, id: c.id }); e.stopPropagation(); return; }
+    if ((b = t.closest('[data-card]'))) { openCard(+b.dataset.card); return; }
+    const fc = t.closest('#s-fpanel .fc');
+    if (fc) { const S = { stypes: sf.types, scolors: sf.colors, smvs: sf.mvs, srar: sf.rar }[fc.dataset.k], v = fc.dataset.k === 'smvs' ? +fc.dataset.v : fc.dataset.v; S.has(v) ? S.delete(v) : S.add(v); sRender(); return; }
+    if (t.closest('#sf-clear')) { sf.pmin = sf.pmax = null; sf.types.clear(); sf.colors.clear(); sf.mvs.clear(); sf.rar.clear(); sf.set = ''; $('sf-pmin').value = $('sf-pmax').value = ''; sRender(); }
+  }, true);
+  sec.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; const r = e.target.closest('[data-card]'); if (r && r.getAttribute('role') === 'button') openCard(+r.dataset.card); });
+  let sT; const later = () => { clearTimeout(sT); sT = setTimeout(sRender, 200); };
+  $('sf-pmin').addEventListener('input', (e) => { sf.pmin = num(e.target.value); later(); });
+  $('sf-pmax').addEventListener('input', (e) => { sf.pmax = num(e.target.value); later(); });
+  sec.addEventListener('change', (e) => { if (e.target.id === 'sf-set') { sf.set = e.target.value; sRender(); } else if (e.target.id === 's-sort') { sS.sort = e.target.value; sRender(); } });
+}
+
 /* ---------- huisstijl-dropdown voor alle keuzemenu's ---------- */
 let ddCur = null;
 const ddRefresh = (sel) => { const d = sel._dd; if (!d) return; const o = sel.options[sel.selectedIndex]; d.l.textContent = o ? o.textContent : '—'; d.btn.disabled = sel.disabled; };
@@ -2615,11 +2793,14 @@ function ddOpen(sel) {
   const d = sel._dd, opts = [...sel.options], host = sel.closest('dialog') || document.body;
   const p = document.createElement('div'); p.className = 'lpanel ddpanel'; p.setAttribute('role', 'listbox');
   const many = opts.length > 12;
-  p.innerHTML = `${many ? '<input type="search" class="ddsearch" placeholder="Zoeken…" aria-label="Zoeken in de keuzes" autocomplete="off">' : ''}<div class="ddlist"></div>`;
+  const sorts = sel.hasAttribute('data-sorts');
+  p.innerHTML = `${sorts ? `<div class="ddsort" role="group" aria-label="Sets sorteren">${SETSORT.map(([k, l]) => `<button type="button" class="ddsb" data-s="${k}" aria-pressed="${setSortMode() === k}">${l}</button>`).join('')}</div>` : ''}${many ? '<input type="search" class="ddsearch" placeholder="Zoeken…" aria-label="Zoeken in de keuzes" autocomplete="off">' : ''}<div class="ddlist"></div>`;
   const list = p.querySelector('.ddlist');
   const fill = (q) => {
     const nq = norm(q || '');
-    list.innerHTML = opts.map((o, i) => ({ o, i })).filter(({ o }) => !nq || norm(o.textContent).includes(nq)).map(({ o, i }) => `<button type="button" class="ddopt" role="option" data-i="${i}" aria-selected="${i === sel.selectedIndex}" ${o.disabled ? 'disabled' : ''}><span>${esc(o.textContent)}</span><span class="ddck" aria-hidden="true">${i === sel.selectedIndex ? '✓' : ''}</span></button>`).join('') || '<div class="hint" style="margin:8px">Niets gevonden.</div>';
+    let arr = opts.map((o, i) => ({ o, i })).filter(({ o }) => !nq || norm(o.textContent).includes(nq));
+    if (sorts) { const cmp = setCmp(setSortMode()); arr = [...arr.filter((x) => !x.o.value), ...arr.filter((x) => x.o.value).sort((x, y) => cmp({ d: x.o.dataset.d, n: x.o.textContent }, { d: y.o.dataset.d, n: y.o.textContent }))]; }
+    list.innerHTML = arr.map(({ o, i }) => `<button type="button" class="ddopt" role="option" data-i="${i}" aria-selected="${i === sel.selectedIndex}" ${o.disabled ? 'disabled' : ''}><span>${esc(o.textContent)}${sorts && o.dataset.d ? `<small class="ddyr">${esc(o.dataset.d.slice(0, 4))}</small>` : ''}</span><span class="ddck" aria-hidden="true">${i === sel.selectedIndex ? '✓' : ''}</span></button>`).join('') || '<div class="hint" style="margin:8px">Niets gevonden.</div>';
   };
   fill(''); host.appendChild(p);
   const r = d.btn.getBoundingClientRect(), vw = innerWidth, vh = innerHeight, w = Math.min(Math.max(r.width, 220), vw - 16);
@@ -2629,7 +2810,7 @@ function ddOpen(sel) {
   const cur = p.querySelector('[aria-selected="true"]'); if (cur) cur.scrollIntoView({ block: 'nearest' });
   const s = p.querySelector('.ddsearch'); if (s) { if (matchMedia('(pointer:fine)').matches) s.focus(); s.addEventListener('input', () => fill(s.value)); }
   else if (cur) cur.focus({ preventScroll: true }); else p.querySelector('.ddopt')?.focus({ preventScroll: true });
-  p.addEventListener('click', (e) => { const b = e.target.closest('.ddopt'); if (!b) return; ddPick(sel, +b.dataset.i); });
+  p.addEventListener('click', (e) => { const sb = e.target.closest('.ddsb'); if (sb) { state.setSort = sb.dataset.s; persist(); p.querySelectorAll('.ddsb').forEach((x) => x.setAttribute('aria-pressed', String(x === sb))); fill(s ? s.value : ''); return; } const b = e.target.closest('.ddopt'); if (!b) return; ddPick(sel, +b.dataset.i); });
   p.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.stopPropagation(); ddClose(); d.btn.focus(); return; }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return; e.preventDefault();
