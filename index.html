@@ -421,6 +421,26 @@ details.fpanel[open]>.fgrid{border:1px solid var(--line);border-radius:10px;back
 .ssort{display:flex;align-items:center;gap:8px}
 #sec-search .pick-grid{margin:10px 0}
 #s-more{display:block;margin:12px auto}
+.dpie{flex:1 1 360px;min-width:260px}
+.dpie-in{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.pc-r{flex:1;min-width:200px}
+.pc-n{font-size:22px;font-weight:700;fill:var(--ink)}
+.pc-l{font-size:9px;fill:var(--muted)}
+.seg{cursor:pointer;transition:stroke-width .12s}
+.hlchips{display:flex;gap:6px;flex-wrap:wrap}
+.hlchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 10px;font-size:13px}
+.hlchip i{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.3);flex:none}
+.hlchip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);font-weight:700}
+.hlchip small{color:var(--muted);font-weight:400}
+.hlsel{margin-top:8px;font-size:13px}
+.bars .stk{display:flex;flex-direction:column-reverse;width:100%;border-radius:4px 4px 0 0;overflow:hidden}
+.bars .stk i{border-radius:0;min-height:0;background:none}
+.ddbtn{width:auto;justify-content:flex-start}
+.ddl{flex:0 1 auto}
+.ddlb{color:var(--muted);font-size:13px;flex:none}
+label>.dd .ddbtn,.cdform .dd .ddbtn,.maprow .dd .ddbtn,.fgrp .dd .ddbtn{width:100%;justify-content:space-between}
+label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
+@media (max-width:899px){.dhead{flex-wrap:wrap}.dpie{flex:1 1 100%}}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -580,7 +600,7 @@ details.fpanel[open]>.fgrid{border:1px solid var(--line);border-radius:10px;back
   <section class="card" id="sec-decks" aria-label="Decks">
     <h2>Decks</h2>
     <div class="toolbar">
-      <select id="deck-sel" aria-label="Kies een deck" style="flex:1;min-width:180px"></select>
+      <select id="deck-sel" aria-label="Kies een deck" data-lbl="Deck"></select>
       <a class="btn" id="deck-open" href="#" target="_blank" rel="noopener noreferrer">Archidekt ↗</a>
       <button class="btn" id="deck-claude" title="Kopieert het deck, je plan en de kaartenlijst om in het gesprek te plakken">Kopieer voor Claude</button>
     </div>
@@ -1422,6 +1442,7 @@ function deckRefreshHint() {
   const link = m && repo ? ` <a href="https://github.com/${m[1]}/${repo}/actions/workflows/decks.yml" target="_blank" rel="noopener noreferrer">Vernieuw de decks via GitHub ↗</a> (Run workflow; het duurt daarna een paar minuten).` : ' Vernieuwen gaat via GitHub: Actions → Decks ophalen uit Archidekt → Run workflow.';
   return 'Iets aangepast in Archidekt?' + link;
 }
+let deckHLfor = null;
 const BLK_DEFAULT = ['bracket', 'opbouw', 'recs', 'plan', 'lijsten', 'kaarten'], DEF_SPAN = { recs: 2, kaarten: 2 };
 function blkState() {
   const b = (state.deckBlocks = state.deckBlocks || { order: [], open: {} });
@@ -1497,7 +1518,7 @@ function renderDecks() {
   const body = $('deck-body'), d = curDeckObj();
   $('deck-open').style.display = d ? '' : 'none'; $('deck-claude').style.display = d ? '' : 'none';
   if (!d) { body.innerHTML = '<div class="empty">Er zijn nog geen decks opgehaald. Zet je Archidekt-gebruikersnaam of deck-nummers in het bestand <code>decks.config.json</code> in je GitHub-repository en start daarna in GitHub het taakje <b>Decks ophalen uit Archidekt</b> (Actions → Run workflow). Of laat Claude dat doen.</div>'; $('deck-foot').innerHTML = deckRefreshHint(); return; }
-  $('deck-open').href = d.url;
+  $('deck-open').href = d.url; if (deckHLfor !== d.id) { deckHL.clear(); deckHLfor = d.id; }
   const m = dmeta(d), { main, cmds, rest, side, maybe } = deckParts(d), b = bracketView(d);
   let total = 0, miss = 0; for (const c of main) { const db = deckCardDb(c), p = db ? price(db) : null; if (p == null) miss += c.q; else total += p * c.q; }
   const cdb = cmds.map(deckCardDb).filter(Boolean)[0];
@@ -1519,6 +1540,7 @@ function renderDecks() {
       <div class="kv num" style="font-size:14px;color:var(--muted)">${qsum(main)} kaarten · ${lands} lands · waarde ${eur.format(total)}${miss ? ` (${miss} kaarten zonder prijs)` : ''}${side.length || maybe.length ? ` · sideboard ${qsum(side)}, maybeboard ${qsum(maybe)}` : ''}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Laatst bijgewerkt op Archidekt: ${esc(String(d.updated || '').slice(0, 10))}${d.owner ? ' · ' + esc(d.owner) : ''}</div>
     </div>
+    <div class="dpie" id="dpie"></div>
   </div>
 `;
   const defs = {
@@ -1530,7 +1552,7 @@ function renderDecks() {
         ${(d.combos || []).filter(comboCounts).map(comboHtml).join('')}${(d.combos || []).some((x) => !comboCounts(x)) ? `<details><summary style="cursor:pointer;color:var(--accent);font-size:13px;padding:6px 0">Combo's die niet meetellen (${d.combos.filter((x) => !comboCounts(x)).length})</summary>${d.combos.filter((x) => !comboCounts(x)).map(comboHtml).join('')}</details>` : ''}
         ${d.combos ? '<div style="font-size:12px;color:var(--muted);margin-top:6px">Combo\'s komen van Commander Spellbook, dat elke combo een label geeft. Standaard telt een combo mee als hij precies twee kaarten heeft, Spellbook hem Powerful, Spicy of Ruthless noemt en er geen extra kaarten of vereisten bij komen. Vink een combo zelf aan of uit: dat geldt voor al je decks. In bracket 3 zijn tweekaartscombo\'s alleen laat in het spel de bedoeling (vanaf ongeveer beurt 6).</div>' : '<div style="font-size:12px;color:var(--muted)">Combo\'s zijn voor dit deck niet opgehaald.</div>'}
       ` },
-    opbouw: { t: 'Opbouw', open: true, sum: '', html: `        <div class="bars" aria-label="Mana curve">${curve.map((n, i) => `<div class="bar"><span>${n || ''}</span><i style="height:${Math.round((n / cmax) * 70)}px"></i><span>${i === 7 ? '7+' : i}</span></div>`).join('')}</div>
+    opbouw: { t: 'Opbouw', open: true, sum: '', html: `        <div id="dcurve"></div>
         <div>${cats.slice(0, 14).map(([k, n]) => `<span class="pill">${esc(k)} ${n}</span>`).join('') || '<span class="hint">Geen eigen categorieën in Archidekt.</span>'}</div>
 ` },
     recs: { t: 'Aanbevelingen', open: true, sum: recsSum(d), html: recsHtml(d) },
@@ -1563,10 +1585,10 @@ function renderDecks() {
   const blockHtml = (id) => { const df = defs[id], isOpen = bs.open[id] ?? df.open, sp = bs.span[id] ?? (DEF_SPAN[id] || 1), hh = bs.h[id]; return `<details class="dblock" data-b="${id}" data-span="${sp}" ${isOpen ? 'open' : ''}><summary><button type="button" class="grip" aria-label="Verplaats ${df.t} (pijltjestoetsen of slepen)" title="Slepen">⠿</button><b>${df.t}</b>${df.sum || ''}<span class="mvs"><button type="button" class="mvb" data-sp="${id}" aria-label="Halve of volle breedte" title="${sp === 2 ? 'Halve breedte' : 'Volle breedte'}">${sp === 2 ? '⇥⇤' : '⇤⇥'}</button></span></summary><div class="dbody ${hh ? 'sized' : ''}" ${hh ? `style="height:${hh}px"` : ''}>${df.html}</div><div class="rz" data-rz="${id}" title="Sleep om hoger of lager te maken (dubbelklik: automatisch)"></div></details>`; };
   body.innerHTML = `${headHtml}<div class="blkbar"><button type="button" class="btn mini" data-blk="close">Alles inklappen</button><button type="button" class="btn mini" data-blk="open">Alles uitklappen</button><button type="button" class="btn mini" data-blk="flip">Volgorde omdraaien</button><button type="button" class="btn mini" data-blk="reset">Standaardvolgorde</button></div><div class="dlayout" id="dlayout" style="grid-template-columns:minmax(0,${bs.r}fr) minmax(0,${100 - bs.r}fr)">${bs.order.map(blockHtml).join('')}<div class="dsplit" id="dsplit" style="left:${bs.r}%" role="separator" aria-orientation="vertical" title="Sleep om de kolommen breder of smaller te maken (dubbelklik: gelijk)"></div></div>`;
   $('deck-foot').innerHTML = `Decks opgehaald: ${deckData.synced ? ago(deckData.synced) : 'onbekend'}. ` + deckRefreshHint();
-  renderDeckFilterUI(); renderDeckCards(d);
+  renderDeckFilterUI(); renderDeckHL(d);
 }
 function renderDeckCards(d) {
-  const q = norm(deckUI.q), rows = d.cards.filter((c) => (deckUI.board === 'all' || (deckUI.board === 'main' ? !c.bd : c.bd === deckUI.board)) && (!deckUI.cat || (c.c || []).includes(deckUI.cat)) && (!q || norm(c.n).includes(q))).filter((c) => { if (!anyDeckFilter()) return true; const db = deckCardDb(c); return passDeckFilters(c, db, db ? price(db) : null); });
+  const q = norm(deckUI.q), rows = d.cards.filter((c) => (deckUI.board === 'all' || (deckUI.board === 'main' ? !c.bd : c.bd === deckUI.board)) && (!deckUI.cat || (c.c || []).includes(deckUI.cat)) && (!q || norm(c.n).includes(q)) && (!deckHL.size || (!(c.ty || '').includes('L') && hlMatch(cardCols(c))))).filter((c) => { if (!anyDeckFilter()) return true; const db = deckCardDb(c); return passDeckFilters(c, db, db ? price(db) : null); });
   rows.sort((x, y) => (y.cmd ? 1 : 0) - (x.cmd ? 1 : 0) || ((x.ty || '').includes('L') ? 1 : 0) - ((y.ty || '').includes('L') ? 1 : 0) || x.mv - y.mv || x.n.localeCompare(y.n));
   let tot = 0;
   const html = rows.map((c) => {
@@ -1616,6 +1638,9 @@ $('deck-body').addEventListener('change', (e) => {
 });
 $('deck-body').addEventListener('toggle', (e) => { const id = e.target.dataset && e.target.dataset.b; if (id) { const b = blkState(); if (b.open[id] !== e.target.open) { b.open[id] = e.target.open; persist(); } } }, true);
 $('deck-body').addEventListener('click', (e) => {
+  const hlb = e.target.closest('[data-hl]'); if (hlb) { const k = hlb.dataset.hl; deckHL.has(k) ? deckHL.delete(k) : deckHL.add(k); renderDeckHL(curDeckObj()); return; }
+  const cmb = e.target.closest('[data-cm]'); if (cmb) { deckUI.cm = cmb.dataset.cm; renderDeckHL(curDeckObj()); return; }
+  if (e.target.closest('[data-hlclear]')) { deckHL.clear(); renderDeckHL(curDeckObj()); return; }
   const spb = e.target.closest('[data-sp]');
   if (spb) { e.preventDefault(); e.stopPropagation(); const b = blkState(), id = spb.dataset.sp, cur = b.span[id] ?? (DEF_SPAN[id] || 1); b.span[id] = cur === 2 ? 1 : 2; persist(); renderDecks(); return; }
   const bk = e.target.closest('[data-blk]');
@@ -2784,6 +2809,64 @@ function sOpenSet(code) { sS.set = code; sS.limit = 100; $('q').value = ''; sRen
   sec.addEventListener('change', (e) => { if (e.target.id === 'sf-set') { sf.set = e.target.value; sRender(); } else if (e.target.id === 's-sort') { sS.sort = e.target.value; sRender(); } });
 }
 
+/* ---------- kleuren van het deck: cirkeldiagram, curve en kaartenlijst ---------- */
+const HLC = [['W', 'Wit', '#ece5bd'], ['U', 'Blauw', '#4a8fd0'], ['B', 'Zwart', '#5b5160'], ['R', 'Rood', '#d1553a'], ['G', 'Groen', '#3f9a5f'], ['M', 'Meerkleurig', '#d4a72c'], ['C', 'Kleurloos', '#a2adb8']];
+const HLN = Object.fromEntries(HLC.map(([k, n, c]) => [k, { n, c }]));
+const deckHL = new Set();
+function cardCols(c) {
+  const s = new Set();
+  if (typeof c.mc === 'string' && c.mc) { for (const m of c.mc.matchAll(/\{([^}]+)\}/g)) for (const ch of m[1]) if ('WUBRG'.includes(ch)) s.add(ch); return s; }
+  const db = deckCardDb(c), co = db && db.co !== undefined ? db.co : (c.ci || '');
+  for (const ch of co) if ('WUBRG'.includes(ch)) s.add(ch);
+  return s;
+}
+const cardCls = (cols) => (cols.size === 0 ? 'C' : cols.size > 1 ? 'M' : [...cols][0]);
+const hlMatch = (cols) => { for (const k of deckHL) if (k === 'C' ? cols.size === 0 : k === 'M' ? cols.size > 1 : cols.has(k)) return true; return false; };
+function pipCount(c) { let n = {}; if (typeof c.mc === 'string') for (const m of c.mc.matchAll(/\{([^}]+)\}/g)) for (const ch of new Set(m[1])) if ('WUBRG'.includes(ch)) n[ch] = (n[ch] || 0) + 1; return n; }
+function deckColorStats(d) {
+  const { rest } = deckParts(d), spells = rest.filter((c) => !(c.ty || '').includes('L'));
+  const pips = { W: 0, U: 0, B: 0, R: 0, G: 0 }, cards = { W: 0, U: 0, B: 0, R: 0, G: 0, M: 0, C: 0 }, contain = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+  const curve = Array.from({ length: 8 }, () => ({})), hasPips = spells.some((c) => c.mc);
+  for (const c of spells) {
+    const cols = cardCols(c), cl = cardCls(cols), m = hlMatch(cols), b = Math.min(c.mv, 7);
+    cards[cl] += c.q; for (const k of cols) contain[k] += c.q;
+    const pc = pipCount(c); for (const k in pc) pips[k] += pc[k] * c.q;
+    const key = cl + (m || !deckHL.size ? '1' : '0'); curve[b][key] = (curve[b][key] || 0) + c.q;
+  }
+  return { spells, pips, cards, contain, curve, hasPips, n: qsum(spells) };
+}
+function pieHtml(d) {
+  const S = deckColorStats(d), mode = deckUI.cm === 'cards' || !S.hasPips ? 'cards' : 'pips';
+  const segs = mode === 'pips' ? ['W', 'U', 'B', 'R', 'G'].map((k) => [k, S.pips[k]]) : HLC.map(([k]) => [k, S.cards[k]]);
+  const tot = segs.reduce((a, [, v]) => a + v, 0) || 1, R = 44, C = 2 * Math.PI * R; let off = 0;
+  const circles = segs.filter(([, v]) => v > 0).map(([k, v]) => {
+    const len = (v / tot) * C;
+    const el = `<circle class="seg ${deckHL.has(k) ? 'on' : ''}" data-hl="${k}" cx="60" cy="60" r="${R}" fill="none" stroke="${HLN[k].c}" stroke-width="${deckHL.has(k) ? 24 : 20}" stroke-dasharray="${Math.max(0, len - 1.5).toFixed(2)} ${(C - len + 1.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" ${deckHL.size && !deckHL.has(k) ? 'opacity=".35"' : ''} transform="rotate(-90 60 60)"><title>${HLN[k].n}: ${v} ${mode === 'pips' ? 'manasymbolen' : 'kaarten'}</title></circle>`;
+    off += len; return el;
+  }).join('');
+  const chip = (k) => { const n = k === 'M' || k === 'C' ? S.cards[k] : mode === 'pips' ? S.pips[k] : S.cards[k]; const sub = (k !== 'M' && k !== 'C' && mode === 'pips') ? ` <small>${S.contain[k]} kaarten</small>` : ''; return `<button type="button" class="hlchip" data-hl="${k}" aria-pressed="${deckHL.has(k)}" title="${HLN[k].n}: toon waar deze kaarten zitten"><i style="background:${HLN[k].c}"></i><span>${HLN[k].n}</span> <b class="num">${n}</b>${sub}</button>`; };
+  const sel = [...deckHL].map((k) => HLN[k].n).join(' + ');
+  let selN = 0; if (deckHL.size) for (const c of S.spells) if (hlMatch(cardCols(c))) selN += c.q;
+  return `<div class="dpie-in"><svg viewBox="0 0 120 120" width="132" height="132" role="img" aria-label="Kleurverdeling van het deck">${circles || '<circle cx="60" cy="60" r="44" fill="none" stroke="var(--line)" stroke-width="20"/>'}<text x="60" y="58" text-anchor="middle" class="pc-n">${mode === 'pips' ? tot : S.n}</text><text x="60" y="73" text-anchor="middle" class="pc-l">${mode === 'pips' ? 'symbolen' : 'kaarten'}</text></svg>
+    <div class="pc-r"><div class="chips" style="margin:0 0 6px" role="group" aria-label="Diagram op basis van"><button type="button" class="chip ${mode === 'pips' ? 'on' : ''}" data-cm="pips" ${S.hasPips ? '' : 'disabled title="Manasymbolen ontbreken nog in de deck-gegevens"'}>Manasymbolen</button><button type="button" class="chip ${mode === 'cards' ? 'on' : ''}" data-cm="cards">Kaarten</button></div>
+    <div class="hlchips">${HLC.filter(([k]) => (k === 'M' || k === 'C' ? S.cards[k] > 0 : mode === 'pips' ? S.pips[k] > 0 : S.cards[k] > 0)).map(([k]) => chip(k)).join('')}</div>
+    ${deckHL.size ? `<div class="hlsel">Selectie: <b>${esc(sel)}</b> · ${selN} van ${S.n} kaarten <button type="button" class="btn mini" data-hlclear>Wis selectie</button></div>` : '<div class="hint" style="margin:6px 0 0">Tik op een kleur om te zien waar die kaarten in de curve en in het deck zitten.</div>'}
+    ${S.hasPips ? '' : '<div class="hint" style="margin:6px 0 0">Aantallen manasymbolen volgen na de eerstvolgende ophaalronde van je decks.</div>'}</div></div>`;
+}
+function curveHtml(d) {
+  const S = deckColorStats(d), order = ['W', 'U', 'B', 'R', 'G', 'M', 'C'];
+  const tot = S.curve.map((b) => Object.values(b).reduce((a, v) => a + v, 0)), cmax = Math.max(1, ...tot);
+  const cols = S.curve.map((b, i) => {
+    const segs = order.flatMap((k) => ['1', '0'].map((m) => [k, m, b[k + m] || 0])).filter((x) => x[2]);
+    const h = segs.filter((x) => x[1] === '1').reduce((a, x) => a + x[2], 0);
+    return `<div class="bar"><span>${deckHL.size ? h + (tot[i] ? '/' + tot[i] : '') : tot[i] || ''}</span><div class="stk" style="height:${Math.round((tot[i] / cmax) * 70)}px">${segs.map(([k, m, n]) => `<i style="flex:${n};background:${HLN[k].c};${m === '0' ? 'opacity:.18' : ''}" title="${HLN[k].n}: ${n}"></i>`).join('')}</div><span>${i === 7 ? '7+' : i}</span></div>`;
+  }).join('');
+  return `<div class="bars" aria-label="Mana curve">${cols}</div><div class="hint" style="margin:0">Alleen spreuken, zonder lands en commander.${deckHL.size ? ' Gekleurde delen horen bij je selectie, de rest is gedimd.' : ''}</div>`;
+}
+function renderDeckHL(d) {
+  const p = $('dpie'), c = $('dcurve'); if (p) p.innerHTML = pieHtml(d); if (c) c.innerHTML = curveHtml(d); renderDeckCards(d);
+}
+
 /* ---------- huisstijl-dropdown voor alle keuzemenu's ---------- */
 let ddCur = null;
 const ddRefresh = (sel) => { const d = sel._dd; if (!d) return; const o = sel.options[sel.selectedIndex]; d.l.textContent = o ? o.textContent : '—'; d.btn.disabled = sel.disabled; };
@@ -2825,9 +2908,9 @@ function ddEnhance(sel) {
   for (const k of ['flex', 'minWidth', 'width', 'maxWidth', 'margin', 'marginBottom', 'marginTop']) if (sel.style[k]) wrap.style[k] = sel.style[k];
   const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn lbtn ddbtn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
   const al = sel.getAttribute('aria-label'); if (al) btn.setAttribute('aria-label', al);
-  btn.innerHTML = '<span class="ddl"></span><span class="ddc" aria-hidden="true">▾</span>';
+  btn.innerHTML = `${sel.dataset.lbl ? `<span class="ddlb">${esc(sel.dataset.lbl)}:</span>` : ''}<span class="ddl"></span><span class="ddc" aria-hidden="true">▾</span>`;
   sel.before(wrap); wrap.append(btn, sel); sel.classList.add('ddnative'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
-  sel._dd = { wrap, btn, l: btn.firstChild };
+  sel._dd = { wrap, btn, l: btn.querySelector('.ddl') };
   for (const prop of ['value', 'selectedIndex']) { const ds = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop); Object.defineProperty(sel, prop, { configurable: true, get() { return ds.get.call(this); }, set(v) { ds.set.call(this, v); ddRefresh(this); } }); }
   new MutationObserver(() => ddRefresh(sel)).observe(sel, { childList: true, subtree: true, attributes: true, attributeFilter: ['selected', 'disabled'] });
   sel.addEventListener('change', () => ddRefresh(sel));
