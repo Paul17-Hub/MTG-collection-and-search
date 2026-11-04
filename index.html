@@ -462,6 +462,19 @@ table.ls .c-chk{width:1%;padding-right:0}table.ls .c-qty{width:1%;white-space:no
   .qin{display:inline}
   table.bl td.c-qty{display:none}
 }
+input.qedit{width:60px;padding:6px 4px;text-align:center;font:inherit;font-weight:700;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);-moz-appearance:textfield}
+input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
+@media (max-width:899px){
+  table.ls tbody tr:has(td.c-chk) td.c-qty{display:block;grid-column:1/3;align-self:center;text-align:left}
+  table.ls tbody tr:has(td.c-chk) td.c-price{grid-column:3}
+  table.ls tbody tr:has(td.c-chk) td.c-koop{grid-column:4}
+  table.ls tbody tr:has(td.c-chk) td.c-sig{grid-column:5}
+  table.ls tbody tr:has(td.c-chk) td.c-chk{grid-row:1}
+  table.ls tbody tr:has(td.c-chk) td.c-name{grid-row:1}
+  table.ls tbody tr:has(td.c-chk) td.c-qty,table.ls tbody tr:has(td.c-chk) td.c-price,table.ls tbody tr:has(td.c-chk) td.c-koop,table.ls tbody tr:has(td.c-chk) td.c-sig{grid-row:2}
+  table.ls tbody tr:has(td.c-chk) .qin{display:none}
+  table.bl .qin{display:inline}
+}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -1152,11 +1165,11 @@ function renderWantlist() {
   el.innerHTML = `<table class="ls"><thead><tr><th class="c-chk"><label class="selc" title="Alles selecteren"><input type="checkbox" id="sel-all" aria-label="Alles selecteren"></label></th><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Prijs</th><th class="r">Koopadvies</th><th>Kopen?</th></tr></thead><tbody>` +
     rows.map(({ it, idx, e }) => {
       const chk = sel.has(it.u) ? 'checked' : '';
-      if (!e) return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num">${it.qty || 1}</td><td class="c-name" colspan="3"><div class="rowf"><span>${esc(it.name)} <span class="hint">(niet gevonden in de database)</span></span> <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></td></tr>`;
+      if (!e) return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num"><input class="qedit" type="number" min="1" inputmode="numeric" value="${it.qty || 1}" data-qw="${it.u}" aria-label="Aantal ${esc(it.name)}"></td><td class="c-name" colspan="3"><div class="rowf"><span>${esc(it.name)} <span class="hint">(niet gevonden in de database)</span></span> <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></td></tr>`;
       const dir = e.dEur == null ? '' : (e.dEur <= 0 ? 'down' : 'up');
       const chg = e.dEur == null ? '' : `<small class="${dir} num">${pct.format(e.dPct)}% · ${eurSigned.format(e.dEur)}</small>`;
       return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}">
-        <td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num"><b>${it.qty || 1}</b></td><td class="c-name"><div class="rowf"><div class="cn" data-hover="${e.c.id}">
+        <td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num"><input class="qedit" type="number" min="1" inputmode="numeric" value="${it.qty || 1}" data-qw="${it.u}" aria-label="Aantal ${esc(it.name)}"></td><td class="c-name"><div class="rowf"><div class="cn" data-hover="${e.c.id}">
           <button class="th" data-zoom="${e.c.id}" aria-label="Vergroot ${esc(it.name)}"><img loading="lazy" alt="" src="${smallImg(e.c)}"></button>
           <div class="nm"><b><span class="qin">${it.qty || 1}× </span>${esc(it.name)}${it.deck ? `<span class="deck">${esc(it.deck)}</span>` : ''}</b><small>${esc(e.c.s)} #${esc(e.c.cn)}${it.id ? '' : ' · goedkoopste uitvoering'}</small></div>
           <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></div></td>
@@ -1301,7 +1314,7 @@ function removeItems(uids) {
   $('undo').onclick = () => { removed.sort((x, y) => x.i - y.i).forEach((x) => state.items.splice(Math.min(x.i, state.items.length), 0, x.it)); persist(); runSearch(); renderWantlist(); m.classList.remove('show'); };
 }
 $('wl').addEventListener('click', (e) => {
-  if (e.target.closest('a')) return;
+  if (e.target.closest('a') || e.target.closest('.qedit')) return;
   const box = e.target.closest('input.sel');
   if (box) {
     const u = box.dataset.u, ix = lastRows.indexOf(u);
@@ -1750,6 +1763,16 @@ function openZoom(id) {
 $('z-close').addEventListener('click', () => $('dlg-zoom').close());
 $('dlg-zoom').addEventListener('click', (e) => { if (e.target.id === 'dlg-zoom' || e.target.id === 'z-img') $('dlg-zoom').close(); });
 let lfT; $('lf').addEventListener('input', () => { clearTimeout(lfT); lfT = setTimeout(renderWantlist, 120); });
+$('wl').addEventListener('change', (e) => {
+  const inp = e.target.closest('input.qedit'); if (!inp) return;
+  const it = state.items.find((i) => i.u === inp.dataset.qw); if (!it) return;
+  const n = Math.floor(Number(inp.value));
+  if (!(n >= 1)) { inp.value = it.qty || 1; note('Het aantal moet minstens 1 zijn. Wil je de kaart weghalen, gebruik dan het kruisje.', 4000); return; }
+  if (n === (it.qty || 1)) return;
+  if (n === 1) delete it.qty; else it.qty = Math.min(n, 999);
+  persist(); renderWantlist();
+});
+$('wl').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList?.contains('qedit')) e.target.blur(); });
 $('lsort').addEventListener('change', (e) => { state.sort = e.target.value; persist(); renderWantlist(); });
 
 /* lijst plakken */
@@ -2382,7 +2405,7 @@ function cRender() {
     out.innerHTML = `<table class="ls cl"><thead><tr><th class="c-chk"><label class="selc" title="Alles selecteren (ook wat niet in beeld is)"><input type="checkbox" id="c-selall" aria-label="Alles selecteren"></label></th><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Plek</th><th class="r">Waarde</th><th>Staat</th></tr></thead><tbody>` +
       shown.map(({ r, c, up, val }) => {
         const chk = cSel.has(r.u) ? 'checked' : '';
-        return `<tr data-u="${r.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="csel" data-u="${r.u}" ${chk} aria-label="Selecteer ${esc(r.n)}"></label></td><td class="c-qty r num"><b>${r.q}</b></td><td class="c-name"><div class="rowf"><div class="cn">
+        return `<tr data-u="${r.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="csel" data-u="${r.u}" ${chk} aria-label="Selecteer ${esc(r.n)}"></label></td><td class="c-qty r num"><input class="qedit" type="number" min="1" inputmode="numeric" value="${r.q}" data-qc="${r.u}" aria-label="Aantal ${esc(r.n)}"></td><td class="c-name"><div class="rowf"><div class="cn">
           <span class="th">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span>
           <div class="nm"><b><span class="qin">${r.q}× </span>${esc(r.n)}${r.f ? '<span class="deck">foil</span>' : ''}${r.g ? '<span class="deck" title="Uitvoering nog niet bevestigd: de goedkoopste is genomen. Tik om te corrigeren.">uitvoering ?</span>' : ''}</b><small>${c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database'}</small></div></div></div></td>
           <td class="c-price r"><small style="color:var(--muted)">${r.p ? esc(r.p) : 'geen plek'}</small></td>
@@ -2655,6 +2678,7 @@ $('c-fpanel').addEventListener('change', (e) => {
   cv.limit = 100; cRender();
 });
 $('c-out').addEventListener('click', (e) => {
+  if (e.target.closest('.qedit')) return;
   if (e.target.id === 'c-more') { cv.limit += cv.view === 'grid' ? 120 : 200; cRender(); return; }
   const rn = e.target.closest('[data-rename]'); if (rn) { cOpenMove({ rename: rn.dataset.rename }); return; }
   const pl = e.target.closest('tr[data-place]'); if (pl) { cv.place = pl.dataset.place; cv.noplace = !pl.dataset.place; if (!pl.dataset.place) cv.place = ''; cv.view = 'list'; cv.limit = 100; cRender(); window.scrollTo(0, 0); return; }
@@ -2674,6 +2698,15 @@ $('c-bulk-clear').addEventListener('click', () => { cSel.clear(); cBulk(); });
 $('cm2-go').addEventListener('click', cDoMove); $('cm2-close').addEventListener('click', () => $('dlg-cmove').close());
 $('cm2-p').addEventListener('keydown', (e) => { if (e.key === 'Enter') cDoMove(); });
 $('c-export').addEventListener('click', () => { if (!cDerive().length) { note('Er is nog niets om te exporteren.', 3000); return; } cExport(); });
+$('c-out').addEventListener('change', (e) => {
+  const inp = e.target.closest('input.qedit'); if (!inp) return;
+  const r = coll.find((x) => x.u === inp.dataset.qc); if (!r) return;
+  const n = Math.floor(Number(inp.value));
+  if (!(n >= 1)) { inp.value = r.q; note('Het aantal moet minstens 1 zijn. Wil je de kaart weghalen, selecteer hem dan en kies verwijderen.', 4000); return; }
+  if (n === r.q) return;
+  r.q = Math.min(n, 9999); r.t = Date.now(); collSave();
+});
+$('c-out').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList?.contains('qedit')) e.target.blur(); });
 $('c-decks').addEventListener('toggle', () => { if ($('c-decks').open) cDecks(); });
 $('c-dksel').addEventListener('change', cDecks);
 $('c-dk').addEventListener('click', (e) => {
