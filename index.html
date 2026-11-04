@@ -448,6 +448,7 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
 @media (max-width:899px){.tabs{gap:2px}.tabs button{padding:12px 4px!important;font-size:13px;min-width:0}}
 .bl td{vertical-align:middle}.bl .bt{white-space:nowrap}.bl .bact{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 #dlg-buy .fld{display:block;margin:0 0 10px}#dlg-buy .fld input{width:100%}
+#buy-card{margin-bottom:12px!important}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -728,7 +729,7 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
       <div class="bigimg"><img id="d-img" alt=""><div class="cap" id="d-cap"></div></div>
       <div>
         <p class="d-sub" id="d-sub"></p>
-        <div class="btnrow" style="margin:0 0 12px"><button class="btn primary" id="d-add">+ Wantlist</button><button class="btn" id="d-other">Andere uitvoering</button></div>
+        <div class="btnrow" style="margin:0 0 12px"><button class="btn primary" id="d-add">+ Wantlist</button><button class="btn" id="d-other">Andere uitvoering</button><button class="btn" id="d-bought">Gekocht</button></div>
         <div class="verdict" id="d-verdict"></div>
         <div id="d-src"></div>
         <p class="foot" id="d-foot"></p>
@@ -1268,6 +1269,7 @@ $('d-add').addEventListener('click', () => {
   if (ix != null && state.items[ix]) { state.items[ix].id = c.id; state.items[ix].name = c.n; persist(); renderWantlist(); $('d-add').textContent = 'Dit is je gekozen uitvoering'; $('d-add').disabled = true; note(`Uitvoering gekozen: ${c.sn} #${c.cn}`, 2500); return; }
   openAddLists({ mode: 'card', name: c.n, id: c.id });
 });
+$('d-bought').addEventListener('click', () => { const c = byId.get(+$('d-add').dataset.id); if (c) openBuy({ card: c }); });
 $('d-img').style.cursor = 'zoom-in';
 $('d-img').addEventListener('click', () => openZoom(+$('d-add').dataset.id));
 /* lijst: klikken, hover, vergroten */
@@ -2136,10 +2138,14 @@ async function syInit() { await loadSy(); setSyState(sy.code ? (navigator.onLine
 
 /* ---------- gekocht ---------- */
 const parseEur = (s) => { const v = parseFloat(String(s || '').replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.')); return isFinite(v) && v >= 0 ? v : null; };
-let buyCtx = null;
+let buyCtx = null; const price_ = (c) => price(c);
 function openBuy(ctx) {
   let name, qty, price, place = '', nt = '', cardLine;
-  if (ctx.itemU) {
+  if (ctx.card) {
+    const c = ctx.card; name = c.n; qty = 1; price = price_(c);
+    cardLine = `${c.n} · ${c.s} #${c.cn}${price != null ? ' · Cardmarket nu ' + eur.format(price) : ''}`;
+    buyCtx = { card: c };
+  } else if (ctx.itemU) {
     const it = state.items.find((i) => i.u === ctx.itemU); if (!it) return;
     const e = evaluate(it); name = it.name; qty = 1; price = e?.p ?? null;
     cardLine = `${it.qty > 1 ? it.qty + '× ' : ''}${it.name}${e ? ' · ' + e.c.s + ' #' + e.c.cn : ''}${e?.p != null ? ' · Cardmarket nu ' + eur.format(e.p) : ''}`;
@@ -2149,7 +2155,7 @@ function openBuy(ctx) {
     name = b.name; qty = b.qty || 1; price = b.price; place = b.place || ''; nt = b.note || '';
     cardLine = `${b.name} (aanpassen)`; buyCtx = { boughtU: b.u };
   }
-  $('buy-title').textContent = ctx.itemU ? 'Gekocht' : 'Aankoop aanpassen';
+  $('buy-title').textContent = ctx.itemU || ctx.card ? 'Gekocht' : 'Aankoop aanpassen';
   $('buy-card').textContent = cardLine;
   $('buy-qty').value = qty; $('buy-qty').max = buyCtx.max || '';
   $('buy-price').value = price != null ? String(price.toFixed(2)).replace('.', ',') : '';
@@ -2164,7 +2170,23 @@ $('buy-go').addEventListener('click', () => {
   if (price == null) { note('Vul een prijs in, bijvoorbeeld 2,50. Gratis? Vul dan 0 in.', 4000); $('buy-price').focus(); return; }
   let q = Math.max(1, parseInt($('buy-qty').value, 10) || 1); const place = $('buy-place').value.trim(), nt = $('buy-note').value.trim();
   state.bought = state.bought || []; const now = Date.now();
-  if (buyCtx.itemU) {
+  if (buyCtx.card) {
+    const c = buyCtx.card, rec = { u: uid(), name: c.n, id: c.id, qty: q, price, ...(place ? { place } : {}), ...(nt ? { note: nt } : {}), d: new Date().toISOString().slice(0, 10), t: now };
+    const snaps = []; let left = q;
+    for (let ix = 0; ix < state.items.length && left > 0; ix++) {
+      const it = state.items[ix]; if (norm(it.name) !== norm(c.n) || (it.id && it.id !== c.id)) continue;
+      const have = it.qty || 1, take = Math.min(have, left); left -= take; snaps.push({ ix, snap: { ...it }, take });
+    }
+    for (const s of [...snaps].reverse()) { const it = state.items[s.ix], have = it.qty || 1; if (s.take >= have) state.items.splice(s.ix, 1); else { it.qty = have - s.take; if (it.qty === 1) delete it.qty; } }
+    state.bought.push(rec); state.lastPlace = place; persist(); runSearch(); renderWantlist(); renderBought();
+    $('dlg-buy').close(); $('dlg-card').close();
+    const taken = q - left;
+    noteUndo(`${q}× ${c.n} staat nu bij Gekocht voor ${eur.format(price)} per stuk.${taken ? ' Van je wantlist afgehaald.' : ''}`, () => {
+      state.bought = state.bought.filter((b) => b.u !== rec.u);
+      for (const s of snaps) { const cur = state.items.findIndex((i) => i.u === s.snap.u); if (cur >= 0) { const it = state.items[cur]; it.qty = (it.qty || 1) + s.take; if (it.qty === 1) delete it.qty; } else state.items.splice(Math.min(s.ix, state.items.length), 0, s.snap); }
+      persist(); runSearch(); renderWantlist(); renderBought();
+    });
+  } else if (buyCtx.itemU) {
     const ix = state.items.findIndex((i) => i.u === buyCtx.itemU); if (ix < 0) return;
     const it = state.items[ix], have = it.qty || 1; q = Math.min(q, have);
     const e = evaluate(it), snap = { ...it }, rec = { u: uid(), name: it.name, ...(it.id ? { id: it.id } : {}), ...(e?.c ? { cid: e.c.id } : {}), qty: q, price, ...(it.deck ? { deck: it.deck } : {}), ...(place ? { place } : {}), ...(nt ? { note: nt } : {}), d: new Date().toISOString().slice(0, 10), t: now };
