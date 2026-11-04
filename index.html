@@ -192,6 +192,8 @@ body[data-tab="search"] #sec-wantlist,body[data-tab="search"] #sec-decks{display
 body[data-tab="decks"] #sec-wantlist,body[data-tab="decks"] #sec-search{display:none}
 body[data-tab="coll"] #sec-wantlist,body[data-tab="coll"] #sec-search,body[data-tab="coll"] #sec-decks{display:none}
 body:not([data-tab="coll"]) #sec-coll{display:none}
+body:not([data-tab="bought"]) #sec-bought{display:none}
+body[data-tab="bought"] #sec-wantlist,body[data-tab="bought"] #sec-search,body[data-tab="bought"] #sec-decks{display:none}
 .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0;padding:0 16px}
 .tabs button{border:1px solid var(--line);background:var(--panel);border-radius:8px 8px 0 0;padding:10px 20px;font-weight:600}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -442,6 +444,10 @@ label>.dd .ddbtn,.cdform .dd .ddbtn,.maprow .dd .ddbtn,.fgrp .dd .ddbtn{width:10
 label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
 @media (max-width:899px){.dhead{flex-wrap:wrap}.dpie{flex:1 1 100%}}
 .rbtns{white-space:nowrap}.btn.mini.rej{padding:2px 8px;color:var(--muted)}.btn.mini.rej:hover{color:#d1553a;border-color:#d1553a}.rejbox{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
+.btn.mini.buy{display:block;margin-top:6px}
+@media (max-width:899px){.tabs{gap:2px}.tabs button{padding:12px 4px!important;font-size:13px;min-width:0}}
+.bl td{vertical-align:middle}.bl .bt{white-space:nowrap}.bl .bact{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+#dlg-buy .fld{display:block;margin:0 0 10px}#dlg-buy .fld input{width:100%}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -463,6 +469,7 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
   <button id="tab-coll" aria-selected="false">Collectie</button>
   <button id="tab-decks" aria-selected="false">Decks</button>
   <button id="tab-search" aria-selected="false">Zoeken</button>
+  <button id="tab-bought" aria-selected="false">Gekocht</button>
 </nav>
 
 <main>
@@ -571,6 +578,13 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
     </details>
     <p class="foot">De waarde is de Cardmarket-trendprijs over alle condities en talen: een indicatie, geen NM-prijs. Foil-kaarten gebruiken de foil-trend. Je collectie staat op dit toestel en, als je toestellen gekoppeld zijn, ook online.</p>
   </section>
+  <section class="card" id="sec-bought" aria-label="Gekocht">
+    <h2>Gekocht</h2>
+    <p class="summary" id="b-total"></p>
+    <div class="toolbar"><input type="search" id="b-q" placeholder="Zoek in gekochte kaarten…" autocomplete="off" aria-label="Zoek in gekochte kaarten"><button class="btn" id="b-copy">Kopieer lijst</button></div>
+    <div id="b-out"></div>
+  </section>
+
   <section class="card" id="sec-search" aria-label="Zoeken">
     <h2>Kaart zoeken</h2>
     <div class="searchbar">
@@ -650,6 +664,18 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
   <div class="dlg-b">
     <p class="hint" style="margin-top:0">Je browser liet kopiëren niet toe. Selecteer de tekst hieronder, kopieer hem en plak hem in het gesprek.</p>
     <textarea class="io" id="cp-text" style="min-height:240px" aria-label="Decktekst"></textarea>
+  </div>
+</dialog>
+
+<dialog id="dlg-buy">
+  <div class="dlg-h"><h3 id="buy-title">Gekocht</h3><button class="btn ghost mini" id="buy-close">Sluiten</button></div>
+  <div class="dlg-b">
+    <p class="hint" style="margin-top:0" id="buy-card"></p>
+    <label class="fld">Aantal<input id="buy-qty" type="number" min="1" inputmode="numeric"></label>
+    <label class="fld">Prijs per stuk (€)<input id="buy-price" inputmode="decimal" placeholder="bijv. 2,50" autocomplete="off"></label>
+    <label class="fld">Waar of van wie (optioneel)<input id="buy-place" placeholder="bijv. Beurs Utrecht" autocomplete="off" list="buy-places"></label><datalist id="buy-places"></datalist>
+    <label class="fld">Opmerking (optioneel)<input id="buy-note" autocomplete="off"></label>
+    <div class="btnrow"><button class="btn primary" id="buy-go">Opslaan</button></div>
   </div>
 </dialog>
 
@@ -848,7 +874,7 @@ const store = {
   load() { try { return JSON.parse(localStorage.getItem('wl') || '{}'); } catch { return {}; } },
   save(s) { try { localStorage.setItem('wl', JSON.stringify(s)); } catch {} }
 };
-let state = Object.assign({ items: [], lists: [], deckMeta: {}, comboOv: {}, deckSel: '', deckBlocks: { order: [], open: {} }, thr: 10, ship: 0, disc: 5, deck: '', sort: 'name' }, store.load());
+let state = Object.assign({ items: [], lists: [], bought: [], deckMeta: {}, comboOv: {}, deckSel: '', deckBlocks: { order: [], open: {} }, thr: 10, ship: 0, disc: 5, deck: '', sort: 'name' }, store.load());
 const NONE = '__none';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 const sel = new Set(); let lastRows = [], anchor = null;
@@ -1084,6 +1110,7 @@ function passFilters(r) {
   return true;
 }
 function renderWantlist() {
+  { const ks = new Set(); let dup = false; for (const i of state.items) { const k = [norm(i.name), i.id || '', i.deck || ''].join('|'); if (ks.has(k)) { dup = true; break; } ks.add(k); } if (dup) { mergeDupes(); persist(); } }
   renderDeckUI(); renderFilterUI();
   { let ch = false; for (const i of state.items) if (!i.u) { i.u = uid(); ch = true; } if (ch) persist(); }
   $('lsort').value = state.sort || 'name';
@@ -1121,7 +1148,7 @@ function renderWantlist() {
           <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></div></td>
         <td class="c-price r pc"><div class="pcw">${spark(e.a30, e.a7, e.p)}<div><span class="big num">${e.p != null ? eur.format(e.p) : '–'}</span>${chg}<a href="${urlCM(e.c)}" target="_blank" rel="noopener noreferrer">bron ↗</a></div></div></td>
         <td class="c-koop r kc">${e.koop != null ? `<span class="big num">≤ ${eur.format(e.koop)}</span><small class="num">incl. ${eur.format(e.ship)} verzending</small>` : '–'}</td>
-        <td class="c-sig" title="${esc(e.why)}"><span class="sig ${e.sig}">${e.sig === 'ja' ? 'JA' : e.sig === 'nee' ? 'NEE' : '?'}</span><small class="why">${esc(e.why)}</small></td>
+        <td class="c-sig" title="${esc(e.why)}"><span class="sig ${e.sig}">${e.sig === 'ja' ? 'JA' : e.sig === 'nee' ? 'NEE' : '?'}</span><small class="why">${esc(e.why)}</small><button class="btn mini buy" data-buy="${it.u}">Gekocht</button></td>
       </tr>`;
     }).join('') + '</tbody></table>';
   lastRows = rows.map((r) => r.it.u); syncSel();
@@ -1270,6 +1297,7 @@ $('wl').addEventListener('click', (e) => {
   if (e.target.closest('#sel-all')) { const on = $('sel-all').checked; lastRows.forEach((u) => (on ? sel.add(u) : sel.delete(u))); syncSel(); return; }
   if (e.target.closest('.selc')) return;
   const z = e.target.closest('[data-zoom]'); if (z) { openZoom(+z.dataset.zoom); return; }
+  const by = e.target.closest('[data-buy]'); if (by) { openBuy({ itemU: by.dataset.buy }); return; }
   const rm = e.target.closest('[data-rm]'); if (rm) { removeItems(new Set([rm.dataset.rm])); return; }
   const tr = e.target.closest('tr[data-row]');
   if (tr) {
@@ -1853,21 +1881,22 @@ $('scan-close').addEventListener('click', closeScan);
 $('dlg-scan').addEventListener('close', () => { if (stream) closeScan(); });
 $('scan-go').addEventListener('click', scanGo);
 $('scan-res').addEventListener('click', (e) => { const t = e.target.closest('[data-pick]'); if (!t) return; const g = byName.get(t.dataset.pick); closeScan(); sS.set = ''; sS.mode = 'cards'; $('q').value = g.name; setTab('search'); runSearch(); openPicker(g, scanHint); });
-$('btn-io').addEventListener('click', () => { $('io-text').value = JSON.stringify({ items: state.items, lists: state.lists, deckMeta: state.deckMeta, deckBlocks: state.deckBlocks, comboOv: state.comboOv, thr: state.thr, ship: state.ship, disc: state.disc }); $('dlg-io').showModal(); });
+$('btn-io').addEventListener('click', () => { $('io-text').value = JSON.stringify({ items: state.items, lists: state.lists, bought: state.bought || [], deckMeta: state.deckMeta, deckBlocks: state.deckBlocks, comboOv: state.comboOv, thr: state.thr, ship: state.ship, disc: state.disc }); $('dlg-io').showModal(); });
 $('io-close').addEventListener('click', () => $('dlg-io').close());
 $('io-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('io-text').value); note('Gekopieerd.', 2000); } catch { $('io-text').select(); } });
 $('io-import').addEventListener('click', () => {
   try {
     const d = JSON.parse($('io-text').value);
     if (!Array.isArray(d.items)) throw new Error('geen wantlist');
-    state = Object.assign(state, { items: d.items, lists: d.lists || state.lists || [], deckMeta: d.deckMeta || state.deckMeta || {}, deckBlocks: d.deckBlocks || state.deckBlocks, comboOv: d.comboOv || state.comboOv || {}, thr: d.thr ?? state.thr, ship: d.ship ?? state.ship, disc: d.disc ?? state.disc }); persist();
+    state = Object.assign(state, { items: d.items, bought: Array.isArray(d.bought) ? d.bought : state.bought || [], lists: d.lists || state.lists || [], deckMeta: d.deckMeta || state.deckMeta || {}, deckBlocks: d.deckBlocks || state.deckBlocks, comboOv: d.comboOv || state.comboOv || {}, thr: d.thr ?? state.thr, ship: d.ship ?? state.ship, disc: d.disc ?? state.disc }); persist();
     $('set-thr').value = state.thr; $('set-ship').value = state.ship; $('set-disc').value = state.disc; runSearch(); renderWantlist(); $('dlg-io').close(); note('Wantlist geïmporteerd.', 2500);
   } catch (e) { note('Importeren mislukt: ' + e.message, 4000); }
 });
-function setTab(t) { document.body.dataset.tab = t; for (const k of ['wantlist', 'coll', 'decks', 'search']) $('tab-' + k).setAttribute('aria-selected', t === k); if (t === 'coll') cRender(); }
+function setTab(t) { document.body.dataset.tab = t; if (t === 'bought') renderBought(); for (const k of ['wantlist', 'coll', 'decks', 'search', 'bought']) $('tab-' + k).setAttribute('aria-selected', t === k); if (t === 'coll') cRender(); }
 $('tab-wantlist').addEventListener('click', () => setTab('wantlist'));
 $('tab-decks').addEventListener('click', () => { setTab('decks'); renderDecks(); });
 $('tab-search').addEventListener('click', () => { setTab('search'); $('q').focus(); });
+$('tab-bought').addEventListener('click', () => setTab('bought'));
 
 /* ---------- plaatjes offline bewaren ---------- */
 const IMGCACHE = 'wl-img-v1';
@@ -1930,7 +1959,7 @@ async function sb(path, opt = {}) {
   if (!r.ok) throw new Error('sb ' + r.status);
   return r.status === 204 ? null : r.json();
 }
-const syPayload = (n) => (n.startsWith('coll-') ? { v: 1, rows: collParts()[+n.slice(5)] } : n === 'wantlist' ? { v: 1, items: state.items, lists: state.lists } : { v: 1, deckMeta: state.deckMeta, deckBlocks: state.deckBlocks, comboOv: state.comboOv, thr: state.thr, ship: state.ship, disc: state.disc, tabs: state.tabs, listOrder: state.listOrder });
+const syPayload = (n) => (n.startsWith('coll-') ? { v: 1, rows: collParts()[+n.slice(5)] } : n === 'wantlist' ? { v: 1, items: state.items, lists: state.lists, bought: state.bought || [] } : { v: 1, deckMeta: state.deckMeta, deckBlocks: state.deckBlocks, comboOv: state.comboOv, thr: state.thr, ship: state.ship, disc: state.disc, tabs: state.tabs, listOrder: state.listOrder });
 const syKeyC = {};
 const syKey = (n) => {
   if (n.startsWith('coll-')) { if (syKeyC.v !== collVer) { syKeyC.v = collVer; syKeyC.k = {}; } return syKeyC.k[n] ?? (syKeyC.k[n] = cyrb53(JSON.stringify(syPayload(n))).toString(36)); }
@@ -1940,7 +1969,7 @@ const syNames = (rows) => [...SYNC_DOCS, ...Array.from({ length: COLL_B }, (_, i
 function syApply(n, d) {
   if (n.startsWith('coll-')) { const i = +n.slice(5), rows = (Array.isArray(d.rows) ? d.rows : []).filter((r) => r && r.u); coll = coll.filter((r) => bucketOf(r.u) !== i).concat(rows); collTouch(); collFlush(); return; }
   if (n === 'wantlist') {
-    state.items = Array.isArray(d.items) ? d.items : []; state.lists = Array.isArray(d.lists) ? d.lists : [];
+    state.items = Array.isArray(d.items) ? d.items : []; state.lists = Array.isArray(d.lists) ? d.lists : []; if (Array.isArray(d.bought)) state.bought = d.bought;
     if (state.deck && state.deck !== NONE && !state.lists.includes(state.deck) && !state.items.some((i) => i.deck === state.deck)) state.deck = '';
   } else {
     for (const k of ['deckMeta', 'deckBlocks', 'comboOv']) if (d[k] && typeof d[k] === 'object') state[k] = d[k];
@@ -1960,13 +1989,14 @@ function syMerge(n, loc, rem) {
       if (seenK.has(k)) { const e = seenK.get(k); e.qty = Math.max(e.qty || 1, i.qty || 1); if (e.qty === 1) delete e.qty; continue; }
       const c = { ...i }; out.push(c); seenK.set(k, c); if (c.u) seenU.add(c.u);
     }
-    return { v: 1, items: out, lists: [...new Set([...(rem.lists || []), ...(loc.lists || [])])] };
+    const bm = new Map(); for (const b of [...(rem.bought || []), ...(loc.bought || [])]) { if (!b || !b.u) continue; const o = bm.get(b.u); if (!o || (b.t || 0) >= (o.t || 0)) bm.set(b.u, b); }
+    return { v: 1, items: out, lists: [...new Set([...(rem.lists || []), ...(loc.lists || [])])], bought: [...bm.values()] };
   }
   return { v: 1, deckMeta: { ...loc.deckMeta, ...rem.deckMeta }, deckBlocks: rem.deckBlocks || loc.deckBlocks, comboOv: { ...loc.comboOv, ...rem.comboOv }, thr: rem.thr ?? loc.thr, ship: rem.ship ?? loc.ship, disc: rem.disc ?? loc.disc, tabs: rem.tabs ?? loc.tabs, listOrder: rem.listOrder ?? loc.listOrder };
 }
 function syRender() {
   sel.clear(); $('set-thr').value = state.thr; $('set-ship').value = state.ship; $('set-disc').value = state.disc ?? 5;
-  store.save(state); mirror(); runSearch(); renderWantlist(); renderDecks(); renderTabs(); cSel.clear(); cRender();
+  store.save(state); mirror(); runSearch(); renderWantlist(); renderDecks(); renderTabs(); cSel.clear(); if (collDedupe()) { collTouch(); collFlush(); scheduleSync(); } cRender(); renderBought();
 }
 function setSyState(s) {
   syState = s;
@@ -2103,6 +2133,92 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(() => { if (document.visibilityState === 'visible') syncNow(false); }, 5 * 60e3);
 async function syInit() { await loadSy(); setSyState(sy.code ? (navigator.onLine ? 'bezig' : 'offline') : 'uit'); if (sy.code) syncNow(false); }
 
+
+/* ---------- gekocht ---------- */
+const parseEur = (s) => { const v = parseFloat(String(s || '').replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.')); return isFinite(v) && v >= 0 ? v : null; };
+let buyCtx = null;
+function openBuy(ctx) {
+  let name, qty, price, place = '', nt = '', cardLine;
+  if (ctx.itemU) {
+    const it = state.items.find((i) => i.u === ctx.itemU); if (!it) return;
+    const e = evaluate(it); name = it.name; qty = 1; price = e?.p ?? null;
+    cardLine = `${it.qty > 1 ? it.qty + '× ' : ''}${it.name}${e ? ' · ' + e.c.s + ' #' + e.c.cn : ''}${e?.p != null ? ' · Cardmarket nu ' + eur.format(e.p) : ''}`;
+    buyCtx = { itemU: ctx.itemU, max: it.qty || 1 };
+  } else {
+    const b = (state.bought || []).find((x) => x.u === ctx.boughtU); if (!b) return;
+    name = b.name; qty = b.qty || 1; price = b.price; place = b.place || ''; nt = b.note || '';
+    cardLine = `${b.name} (aanpassen)`; buyCtx = { boughtU: b.u };
+  }
+  $('buy-title').textContent = ctx.itemU ? 'Gekocht' : 'Aankoop aanpassen';
+  $('buy-card').textContent = cardLine;
+  $('buy-qty').value = qty; $('buy-qty').max = buyCtx.max || '';
+  $('buy-price').value = price != null ? String(price.toFixed(2)).replace('.', ',') : '';
+  $('buy-place').value = place || (state.lastPlace || ''); $('buy-note').value = nt;
+  $('buy-places').innerHTML = [...new Set((state.bought || []).map((b) => b.place).filter(Boolean))].map((p) => `<option value="${esc(p)}">`).join('');
+  $('dlg-buy').showModal(); $('buy-price').focus(); $('buy-price').select();
+}
+$('buy-close').addEventListener('click', () => $('dlg-buy').close());
+$('buy-go').addEventListener('click', () => {
+  if (!buyCtx) return;
+  const price = parseEur($('buy-price').value);
+  if (price == null) { note('Vul een prijs in, bijvoorbeeld 2,50. Gratis? Vul dan 0 in.', 4000); $('buy-price').focus(); return; }
+  let q = Math.max(1, parseInt($('buy-qty').value, 10) || 1); const place = $('buy-place').value.trim(), nt = $('buy-note').value.trim();
+  state.bought = state.bought || []; const now = Date.now();
+  if (buyCtx.itemU) {
+    const ix = state.items.findIndex((i) => i.u === buyCtx.itemU); if (ix < 0) return;
+    const it = state.items[ix], have = it.qty || 1; q = Math.min(q, have);
+    const e = evaluate(it), snap = { ...it }, rec = { u: uid(), name: it.name, ...(it.id ? { id: it.id } : {}), ...(e?.c ? { cid: e.c.id } : {}), qty: q, price, ...(it.deck ? { deck: it.deck } : {}), ...(place ? { place } : {}), ...(nt ? { note: nt } : {}), d: new Date().toISOString().slice(0, 10), t: now };
+    if (q >= have) state.items.splice(ix, 1); else { it.qty = have - q; if (it.qty === 1) delete it.qty; }
+    state.bought.push(rec); state.lastPlace = place; sel.clear(); persist(); runSearch(); renderWantlist(); renderBought();
+    $('dlg-buy').close();
+    noteUndo(`${q}× ${it.name} staat nu bij Gekocht voor ${eur.format(price)} per stuk.`, () => {
+      state.bought = state.bought.filter((b) => b.u !== rec.u);
+      const cur = state.items.findIndex((i) => i.u === snap.u);
+      if (cur >= 0) { const c = state.items[cur]; c.qty = (c.qty || 1) + q; if (c.qty === 1) delete c.qty; } else state.items.splice(Math.min(ix, state.items.length), 0, snap);
+      persist(); runSearch(); renderWantlist(); renderBought();
+    });
+  } else {
+    const b = state.bought.find((x) => x.u === buyCtx.boughtU); if (!b) return;
+    Object.assign(b, { qty: q, price, t: now }); if (place) b.place = place; else delete b.place; if (nt) b.note = nt; else delete b.note;
+    state.lastPlace = place; persist(); renderBought(); $('dlg-buy').close();
+  }
+});
+const bQ = { q: '' };
+function renderBought() {
+  const out = $('b-out'); if (!out) return;
+  const list = (state.bought || []).slice().sort((a, b) => (b.t || 0) - (a.t || 0));
+  const q = norm(bQ.q || ''), rows = list.filter((b) => !q || norm(b.name).includes(q) || norm(b.place || '').includes(q));
+  const stuks = rows.reduce((n, b) => n + b.qty, 0), tot = rows.reduce((n, b) => n + b.qty * b.price, 0);
+  $('b-total').innerHTML = list.length ? `<b>${stuks}</b> ${stuks === 1 ? 'kaart' : 'kaarten'} gekocht${q ? ' (gefilterd)' : ''} · totaal betaald <b>${eur.format(tot)}</b>` : '';
+  if (!list.length) { out.innerHTML = '<div class="empty">Nog niets gekocht. Tik in Alle kaarten bij een kaart op “Gekocht”, vul de prijs in, dan komt hij hier te staan en gaat hij van je wantlist af.</div>'; return; }
+  if (!rows.length) { out.innerHTML = '<div class="empty">Geen aankopen die aan je zoekopdracht voldoen.</div>'; return; }
+  out.innerHTML = `<table class="ls bl"><thead><tr><th>Kaart</th><th class="r">Aantal</th><th class="r">Prijs per stuk</th><th class="r">Totaal</th><th></th></tr></thead><tbody>${rows.map((b) => {
+    const c = (b.id || b.cid) ? byId.get(b.id || b.cid) : null, g = !c ? byName.get(norm(b.name)) : null, cc = c || (g ? cheapest(g) : null);
+    return `<tr data-bu="${b.u}"><td class="c-name"><div class="cn">${cc ? `<span class="th"><img loading="lazy" alt="" src="${smallImg(cc)}"></span>` : ''}<div class="nm"><b>${esc(b.name)}${b.deck ? `<span class="deck">${esc(b.deck)}</span>` : ''}</b><small>${cc ? esc(cc.s) + ' #' + esc(cc.cn) + ' · ' : ''}${esc(b.d || '')}${b.place ? ' · ' + esc(b.place) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div></div></td><td class="r num"><b>${b.qty}×</b></td><td class="r num">${eur.format(b.price)}</td><td class="r num"><b>${eur.format(b.qty * b.price)}</b></td><td class="bt"><div class="bact"><button class="btn mini" data-bedit="${b.u}">Aanpassen</button><button class="btn mini" data-bback="${b.u}">Terug naar wantlist</button><button class="btn mini rej" data-bdel="${b.u}" aria-label="Verwijder ${esc(b.name)}">✕</button></div></td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+$('b-q').addEventListener('input', (e) => { bQ.q = e.target.value; renderBought(); });
+$('b-out').addEventListener('click', (e) => {
+  const ed = e.target.closest('[data-bedit]'); if (ed) { openBuy({ boughtU: ed.dataset.bedit }); return; }
+  const bk = e.target.closest('[data-bback]');
+  if (bk) {
+    const i = (state.bought || []).findIndex((x) => x.u === bk.dataset.bback); if (i < 0) return; const b = state.bought[i];
+    state.bought.splice(i, 1);
+    const ex = state.items.find((x) => norm(x.name) === norm(b.name) && (x.id || '') === (b.id || '') && (x.deck || '') === (b.deck || ''));
+    let addedU = null; if (ex) { ex.qty = (ex.qty || 1) + b.qty; } else { addedU = uid(); state.items.push({ name: b.name, ...(b.id ? { id: b.id } : {}), ...(b.deck ? { deck: b.deck } : {}), ...(b.qty > 1 ? { qty: b.qty } : {}), u: addedU }); }
+    persist(); runSearch(); renderWantlist(); renderBought();
+    noteUndo(`${b.name} staat weer op je wantlist.`, () => { if (ex) { ex.qty = (ex.qty || 1) - b.qty; if (ex.qty <= 1) delete ex.qty; } else state.items = state.items.filter((x) => x.u !== addedU); state.bought.splice(Math.min(i, state.bought.length), 0, b); persist(); runSearch(); renderWantlist(); renderBought(); });
+    return;
+  }
+  const dl = e.target.closest('[data-bdel]');
+  if (dl) { const i = state.bought.findIndex((x) => x.u === dl.dataset.bdel); if (i < 0) return; const b = state.bought[i]; state.bought.splice(i, 1); persist(); renderBought(); noteUndo(`Aankoop van ${b.name} verwijderd.`, () => { state.bought.splice(Math.min(i, state.bought.length), 0, b); persist(); renderBought(); }); }
+});
+$('b-copy').addEventListener('click', async () => {
+  const list = (state.bought || []).slice().sort((a, b) => (a.t || 0) - (b.t || 0));
+  const txt = list.map((b) => `${b.qty}× ${b.name} – ${eur.format(b.price)}${b.qty > 1 ? ' per stuk' : ''}${b.place ? ' (' + b.place + ')' : ''}`).join('\n') + `\nTotaal: ${eur.format(list.reduce((n, b) => n + b.qty * b.price, 0))}`;
+  try { await navigator.clipboard.writeText(txt); note('Lijst gekopieerd.', 2500); } catch { note('Kopiëren lukte niet op dit apparaat.', 4000); }
+});
+
 /* ---------- collectie ---------- */
 const COLL_B = 16, CONDS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'], LANGS = ['EN', 'NL', 'DE', 'FR', 'IT', 'ES', 'PT', 'JA', 'KO', 'RU', 'ZHS', 'ZHT'];
 const BASICS = new Set(['plains', 'island', 'swamp', 'mountain', 'forest', 'wastes', 'snow covered plains', 'snow covered island', 'snow covered swamp', 'snow covered mountain', 'snow covered forest']);
@@ -2113,8 +2229,14 @@ const cSel = new Set(); let cLast = [], cAnchor = null, cShown = [];
 const bucketOf = (u) => cyrb53(String(u)) % COLL_B;
 const ckey = (r) => [r.id || norm(r.n || ''), r.f ? 1 : 0, r.c || 'NM', r.l || 'EN', String(r.p || '').trim().toLowerCase()].join('|');
 const collTouch = () => { collVer++; collParts_ = null; collDer = null; };
+function collDedupe() {
+  const map = new Map(); let ch = false, now = Date.now();
+  for (const r of coll) { if (r.d) continue; const k = ckey(r), o = map.get(k); if (!o) map.set(k, r); else { o.q += r.q; if (o.b == null && r.b != null) o.b = r.b; o.t = now; r.d = 1; r.t = now; ch = true; } }
+  return ch;
+}
 async function collLoad() {
   try { const a = await DB.get('coll'); if (Array.isArray(a)) { const cut = Date.now() - 90 * 864e5; coll = a.filter((r) => r && r.u && !(r.d && (r.t || 0) < cut)); } } catch {}
+  if (collDedupe()) { collTouch(); collFlush(); scheduleSync(); }
   collTouch();
 }
 const collFlush = () => { clearTimeout(collSaveT); collSaveT = 0; return DB.set('coll', coll).catch(() => {}); };
@@ -2227,7 +2349,7 @@ function cRender() {
         const chk = cSel.has(r.u) ? 'checked' : '';
         return `<tr data-u="${r.u}" class="${chk ? 'sel' : ''}"><td class="c-name"><div class="rowf"><label class="selc"><input type="checkbox" class="csel" data-u="${r.u}" ${chk} aria-label="Selecteer ${esc(r.n)}"></label><div class="cn">
           <span class="th">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span>
-          <div class="nm"><b>${esc(r.n)}${r.f ? '<span class="deck">foil</span>' : ''}${r.g ? '<span class="deck" title="Uitvoering nog niet bevestigd: de goedkoopste is genomen. Tik om te corrigeren.">uitvoering ?</span>' : ''}</b><small>${c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database'}</small></div></div></div></td>
+          <div class="nm"><b>${r.q > 1 ? r.q + '× ' : ''}${esc(r.n)}${r.f ? '<span class="deck">foil</span>' : ''}${r.g ? '<span class="deck" title="Uitvoering nog niet bevestigd: de goedkoopste is genomen. Tik om te corrigeren.">uitvoering ?</span>' : ''}</b><small>${c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database'}</small></div></div></div></td>
           <td class="c-price r"><b class="num">${r.q}×</b><small style="display:block;color:var(--muted)">${r.p ? esc(r.p) : 'geen plek'}</small></td>
           <td class="c-koop r">${up != null ? `<span class="big num">${cEur(val)}</span><small class="num" style="display:block;color:var(--muted)">${r.q > 1 ? cEur(up) + ' per stuk' : '&nbsp;'}</small>` : '–'}</td>
           <td class="c-sig"><small>${esc(r.c || 'NM')} · ${esc(r.l || 'EN')}</small></td></tr>`;
@@ -2617,7 +2739,7 @@ function sortable(box, itemSel, done) {
     document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
   });
 }
-const TAB_DEF = { wantlist: 'Alle kaarten', coll: 'Collectie', decks: 'Decks', search: 'Zoeken' };
+const TAB_DEF = { wantlist: 'Alle kaarten', coll: 'Collectie', decks: 'Decks', search: 'Zoeken', bought: 'Gekocht' };
 function tabCfg() {
   const t = state.tabs && typeof state.tabs === 'object' ? state.tabs : {};
   const order = (t.order || []).filter((k) => TAB_DEF[k]); for (const k of Object.keys(TAB_DEF)) if (!order.includes(k)) order.push(k);
@@ -2627,7 +2749,7 @@ const tabName = (k) => String(tabCfg().names[k] || '').trim() || TAB_DEF[k];
 function renderTabs() {
   const nav = document.querySelector('nav.tabs');
   for (const k of tabCfg().order) { const b = $('tab-' + k); b.textContent = tabName(k); nav.appendChild(b); }
-  const h = document.querySelector('#sec-wantlist h2'); if (h) h.textContent = tabName('wantlist');
+  const h = document.querySelector('#sec-wantlist h2'); if (h) h.textContent = tabName('wantlist'); const hb = document.querySelector('#sec-bought h2'); if (hb) hb.textContent = tabName('bought');
 }
 function renderTabRows() {
   const { order, names } = tabCfg();
@@ -2951,7 +3073,7 @@ ddScan(document.body);
   renderTabs(); renderWantlist(); renderResults([]);
   try { const saved = await DB.get('cards'); if (saved) { indexCards(saved); const sdk = await DB.get('decks'); if (sdk) indexDecks(sdk); const srk = await DB.get('recs'); if (srk) indexRecs(srk); setStatus(); runSearch(); renderWantlist(); } } catch {}
   renderDecks(); if (navigator.onLine) refreshDecks();
-  await collLoad(); cRender();
+  await collLoad(); cRender(); renderBought();
   syInit();
   if (restored) note('Je lijsten waren door de browser gewist en zijn hersteld uit de reservekopie.', 10000);
   // één keer per dag automatisch bijwerken bij openen
