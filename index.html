@@ -449,6 +449,19 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
 .bl td{vertical-align:middle}.bl .bt{white-space:nowrap}.bl .bact{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 #dlg-buy .fld{display:block;margin:0 0 10px}#dlg-buy .fld input{width:100%}
 #buy-card{margin-bottom:12px!important}
+table.ls .c-chk{width:1%;padding-right:0}table.ls .c-qty{width:1%;white-space:nowrap;padding-left:4px;padding-right:12px}table.ls td.c-qty{font-size:15px}
+.qin{display:none}
+@media (max-width:899px){
+  table.ls tr.has-chk,table.ls tbody tr:has(td.c-chk){grid-template-columns:auto auto minmax(0,1fr) minmax(0,1fr) auto}
+  table.ls td.c-chk{grid-column:1;align-self:center}
+  table.ls td.c-qty{display:none}
+  table.ls tbody tr:has(td.c-chk) td.c-name{grid-column:2/6}
+  table.ls tbody tr:has(td.c-chk) td.c-price{grid-column:1/4}
+  table.ls tbody tr:has(td.c-chk) td.c-koop{grid-column:4}
+  table.ls tbody tr:has(td.c-chk) td.c-sig{grid-column:5}
+  .qin{display:inline}
+  table.bl td.c-qty{display:none}
+}
 </style>
 </head>
 <body data-tab="wantlist">
@@ -1136,16 +1149,16 @@ function renderWantlist() {
   const ja = rows.filter((r) => r.e?.sig === 'ja').length, stuks = rows.reduce((n, r) => n + (r.it.qty || 1), 0);
   $('lsum').textContent = `${rows.length}${rows.length !== inScope.length ? ' van ' + inScope.length : ''} ${rows.length === 1 && rows.length === inScope.length ? 'kaart' : 'kaarten'}${stuks !== rows.length ? ` (${stuks} stuks)` : ''}${ja ? ` · ${ja}× JA` : ''}`;
   if (!rows.length) { el.innerHTML = '<div class="empty">Geen kaarten die aan het filter voldoen.</div>'; lastRows = []; syncSel(); return; }
-  el.innerHTML = `<table class="ls"><thead><tr><th><label class="selc" title="Alles selecteren"><input type="checkbox" id="sel-all" aria-label="Alles selecteren"></label>Kaart</th><th class="r">Prijs</th><th class="r">Koopadvies</th><th>Kopen?</th></tr></thead><tbody>` +
+  el.innerHTML = `<table class="ls"><thead><tr><th class="c-chk"><label class="selc" title="Alles selecteren"><input type="checkbox" id="sel-all" aria-label="Alles selecteren"></label></th><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Prijs</th><th class="r">Koopadvies</th><th>Kopen?</th></tr></thead><tbody>` +
     rows.map(({ it, idx, e }) => {
       const chk = sel.has(it.u) ? 'checked' : '';
-      if (!e) return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}"><td class="c-name" colspan="4"><div class="rowf"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label><span>${esc(it.name)} <span class="hint">(niet gevonden in de database)</span></span> <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></td></tr>`;
+      if (!e) return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num">${it.qty || 1}</td><td class="c-name" colspan="3"><div class="rowf"><span>${esc(it.name)} <span class="hint">(niet gevonden in de database)</span></span> <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></td></tr>`;
       const dir = e.dEur == null ? '' : (e.dEur <= 0 ? 'down' : 'up');
       const chg = e.dEur == null ? '' : `<small class="${dir} num">${pct.format(e.dPct)}% · ${eurSigned.format(e.dEur)}</small>`;
       return `<tr data-row="${idx}" data-u="${it.u}" class="${chk ? 'sel' : ''}">
-        <td class="c-name"><div class="rowf"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label><div class="cn" data-hover="${e.c.id}">
+        <td class="c-chk"><label class="selc"><input type="checkbox" class="sel" data-u="${it.u}" ${chk} aria-label="Selecteer ${esc(it.name)}"></label></td><td class="c-qty r num"><b>${it.qty || 1}</b></td><td class="c-name"><div class="rowf"><div class="cn" data-hover="${e.c.id}">
           <button class="th" data-zoom="${e.c.id}" aria-label="Vergroot ${esc(it.name)}"><img loading="lazy" alt="" src="${smallImg(e.c)}"></button>
-          <div class="nm"><b>${it.qty > 1 ? it.qty + '× ' : ''}${esc(it.name)}${it.deck ? `<span class="deck">${esc(it.deck)}</span>` : ''}</b><small>${esc(e.c.s)} #${esc(e.c.cn)}${it.id ? '' : ' · goedkoopste uitvoering'}</small></div>
+          <div class="nm"><b><span class="qin">${it.qty || 1}× </span>${esc(it.name)}${it.deck ? `<span class="deck">${esc(it.deck)}</span>` : ''}</b><small>${esc(e.c.s)} #${esc(e.c.cn)}${it.id ? '' : ' · goedkoopste uitvoering'}</small></div>
           <button class="rm" data-rm="${it.u}" aria-label="Verwijder ${esc(it.name)}">×</button></div></div></td>
         <td class="c-price r pc"><div class="pcw">${spark(e.a30, e.a7, e.p)}<div><span class="big num">${e.p != null ? eur.format(e.p) : '–'}</span>${chg}<a href="${urlCM(e.c)}" target="_blank" rel="noopener noreferrer">bron ↗</a></div></div></td>
         <td class="c-koop r kc">${e.koop != null ? `<span class="big num">≤ ${eur.format(e.koop)}</span><small class="num">incl. ${eur.format(e.ship)} verzending</small>` : '–'}</td>
@@ -2214,9 +2227,9 @@ function renderBought() {
   $('b-total').innerHTML = list.length ? `<b>${stuks}</b> ${stuks === 1 ? 'kaart' : 'kaarten'} gekocht${q ? ' (gefilterd)' : ''} · totaal betaald <b>${eur.format(tot)}</b>` : '';
   if (!list.length) { out.innerHTML = '<div class="empty">Nog niets gekocht. Tik in Alle kaarten bij een kaart op “Gekocht”, vul de prijs in, dan komt hij hier te staan en gaat hij van je wantlist af.</div>'; return; }
   if (!rows.length) { out.innerHTML = '<div class="empty">Geen aankopen die aan je zoekopdracht voldoen.</div>'; return; }
-  out.innerHTML = `<table class="ls bl"><thead><tr><th>Kaart</th><th class="r">Aantal</th><th class="r">Prijs per stuk</th><th class="r">Totaal</th><th></th></tr></thead><tbody>${rows.map((b) => {
+  out.innerHTML = `<table class="ls bl"><thead><tr><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Prijs per stuk</th><th class="r">Totaal</th><th></th></tr></thead><tbody>${rows.map((b) => {
     const c = (b.id || b.cid) ? byId.get(b.id || b.cid) : null, g = !c ? byName.get(norm(b.name)) : null, cc = c || (g ? cheapest(g) : null);
-    return `<tr data-bu="${b.u}"><td class="c-name"><div class="cn">${cc ? `<span class="th"><img loading="lazy" alt="" src="${smallImg(cc)}"></span>` : ''}<div class="nm"><b>${esc(b.name)}${b.deck ? `<span class="deck">${esc(b.deck)}</span>` : ''}</b><small>${cc ? esc(cc.s) + ' #' + esc(cc.cn) + ' · ' : ''}${esc(b.d || '')}${b.place ? ' · ' + esc(b.place) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div></div></td><td class="r num"><b>${b.qty}×</b></td><td class="r num">${eur.format(b.price)}</td><td class="r num"><b>${eur.format(b.qty * b.price)}</b></td><td class="bt"><div class="bact"><button class="btn mini" data-bedit="${b.u}">Aanpassen</button><button class="btn mini" data-bback="${b.u}">Terug naar wantlist</button><button class="btn mini rej" data-bdel="${b.u}" aria-label="Verwijder ${esc(b.name)}">✕</button></div></td></tr>`;
+    return `<tr data-bu="${b.u}"><td class="c-qty r num"><b>${b.qty}</b></td><td class="c-name"><div class="cn">${cc ? `<span class="th"><img loading="lazy" alt="" src="${smallImg(cc)}"></span>` : ''}<div class="nm"><b><span class="qin">${b.qty}× </span>${esc(b.name)}${b.deck ? `<span class="deck">${esc(b.deck)}</span>` : ''}</b><small>${cc ? esc(cc.s) + ' #' + esc(cc.cn) + ' · ' : ''}${esc(b.d || '')}${b.place ? ' · ' + esc(b.place) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div></div></td><td class="r num">${eur.format(b.price)}</td><td class="r num"><b>${eur.format(b.qty * b.price)}</b></td><td class="bt"><div class="bact"><button class="btn mini" data-bedit="${b.u}">Aanpassen</button><button class="btn mini" data-bback="${b.u}">Terug naar wantlist</button><button class="btn mini rej" data-bdel="${b.u}" aria-label="Verwijder ${esc(b.name)}">✕</button></div></td></tr>`;
   }).join('')}</tbody></table>`;
 }
 $('b-q').addEventListener('input', (e) => { bQ.q = e.target.value; renderBought(); });
@@ -2366,13 +2379,13 @@ function cRender() {
   if (cv.view === 'grid') {
     out.innerHTML = `<div class="cgrid">${shown.map(({ r, c, up, val }) => `<button type="button" class="cg ${cSel.has(r.u) ? 'sel' : ''}" data-u="${r.u}" aria-label="${esc(r.n)}">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : '<span class="noimg"></span>'}<span class="qb">${r.q}×</span>${r.f ? '<span class="fb">foil</span>' : ''}<small><b>${esc(r.n)}</b>${r.p ? ' · ' + esc(r.p) : ''}<br>${up != null ? cEur(val) : '–'}</small></button>`).join('')}</div>${more}`;
   } else {
-    out.innerHTML = `<table class="ls cl"><thead><tr><th><label class="selc" title="Alles selecteren (ook wat niet in beeld is)"><input type="checkbox" id="c-selall" aria-label="Alles selecteren"></label>Kaart</th><th class="r">Aantal en plek</th><th class="r">Waarde</th><th>Staat</th></tr></thead><tbody>` +
+    out.innerHTML = `<table class="ls cl"><thead><tr><th class="c-chk"><label class="selc" title="Alles selecteren (ook wat niet in beeld is)"><input type="checkbox" id="c-selall" aria-label="Alles selecteren"></label></th><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Plek</th><th class="r">Waarde</th><th>Staat</th></tr></thead><tbody>` +
       shown.map(({ r, c, up, val }) => {
         const chk = cSel.has(r.u) ? 'checked' : '';
-        return `<tr data-u="${r.u}" class="${chk ? 'sel' : ''}"><td class="c-name"><div class="rowf"><label class="selc"><input type="checkbox" class="csel" data-u="${r.u}" ${chk} aria-label="Selecteer ${esc(r.n)}"></label><div class="cn">
+        return `<tr data-u="${r.u}" class="${chk ? 'sel' : ''}"><td class="c-chk"><label class="selc"><input type="checkbox" class="csel" data-u="${r.u}" ${chk} aria-label="Selecteer ${esc(r.n)}"></label></td><td class="c-qty r num"><b>${r.q}</b></td><td class="c-name"><div class="rowf"><div class="cn">
           <span class="th">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span>
-          <div class="nm"><b>${r.q > 1 ? r.q + '× ' : ''}${esc(r.n)}${r.f ? '<span class="deck">foil</span>' : ''}${r.g ? '<span class="deck" title="Uitvoering nog niet bevestigd: de goedkoopste is genomen. Tik om te corrigeren.">uitvoering ?</span>' : ''}</b><small>${c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database'}</small></div></div></div></td>
-          <td class="c-price r"><b class="num">${r.q}×</b><small style="display:block;color:var(--muted)">${r.p ? esc(r.p) : 'geen plek'}</small></td>
+          <div class="nm"><b><span class="qin">${r.q}× </span>${esc(r.n)}${r.f ? '<span class="deck">foil</span>' : ''}${r.g ? '<span class="deck" title="Uitvoering nog niet bevestigd: de goedkoopste is genomen. Tik om te corrigeren.">uitvoering ?</span>' : ''}</b><small>${c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database'}</small></div></div></div></td>
+          <td class="c-price r"><small style="color:var(--muted)">${r.p ? esc(r.p) : 'geen plek'}</small></td>
           <td class="c-koop r">${up != null ? `<span class="big num">${cEur(val)}</span><small class="num" style="display:block;color:var(--muted)">${r.q > 1 ? cEur(up) + ' per stuk' : '&nbsp;'}</small>` : '–'}</td>
           <td class="c-sig"><small>${esc(r.c || 'NM')} · ${esc(r.l || 'EN')}</small></td></tr>`;
       }).join('') + `</tbody></table>${more}`;
