@@ -2205,6 +2205,31 @@ function openBuy(ctx) {
   $('buy-places').innerHTML = [...new Set((state.bought || []).map((b) => b.place).filter(Boolean))].map((p) => `<option value="${esc(p)}">`).join('');
   $('dlg-buy').showModal(); $('buy-price').focus(); $('buy-price').select();
 }
+/* aankoop -> Collectie */
+function collSpecOf(rec) { return { id: rec.id || rec.cid || 0, n: rec.name, f: 0, c: 'NM', l: 'EN', p: rec.place || '' }; }
+function collAddBought(rec) {
+  const sp = collSpecOf(rec), k = ckey(sp), now = Date.now(), ex = coll.find((r) => !r.d && ckey(r) === k);
+  let info;
+  if (ex) {
+    info = { u: ex.u, prev: { q: ex.q, b: ex.b } };
+    const q0 = ex.q; ex.q = Math.min(q0 + rec.qty, 9999);
+    ex.b = ex.b != null ? Math.round(((ex.b * q0 + rec.price * rec.qty) / (q0 + rec.qty)) * 100) / 100 : rec.price; ex.t = now;
+  } else {
+    const row = { u: uid(), id: sp.id, n: rec.name, q: rec.qty, f: 0, c: 'NM', l: 'EN', p: sp.p, b: rec.price, t: now };
+    if (!rec.id) row.g = 1; if (!sp.id) delete row.id;
+    coll.push(row); info = { u: row.u, prev: null };
+  }
+  collSave(); return info;
+}
+function collUndoAdd(info) {
+  const r = coll.find((x) => x.u === info.u); if (!r) return;
+  if (info.prev) { r.q = info.prev.q; if (info.prev.b != null) r.b = info.prev.b; else delete r.b; } else r.d = 1;
+  r.t = Date.now(); collSave();
+}
+function collRemoveBought(rec) {
+  const k = ckey(collSpecOf(rec)), r = coll.find((x) => !x.d && ckey(x) === k); if (!r) return;
+  r.q -= rec.qty; if (r.q <= 0) { r.q = 0; r.d = 1; } r.t = Date.now(); collSave();
+}
 $('buy-close').addEventListener('click', () => $('dlg-buy').close());
 $('buy-go').addEventListener('click', () => {
   if (!buyCtx) return;
@@ -2220,11 +2245,11 @@ $('buy-go').addEventListener('click', () => {
       const have = it.qty || 1, take = Math.min(have, left); left -= take; snaps.push({ ix, snap: { ...it }, take });
     }
     for (const s of [...snaps].reverse()) { const it = state.items[s.ix], have = it.qty || 1; if (s.take >= have) state.items.splice(s.ix, 1); else { it.qty = have - s.take; if (it.qty === 1) delete it.qty; } }
-    state.bought.push(rec); state.lastPlace = place; persist(); runSearch(); renderWantlist(); renderBought();
+    state.bought.push(rec); state.lastPlace = place; persist(); runSearch(); renderWantlist(); renderBought(); const cinfo = collAddBought(rec);
     $('dlg-buy').close(); $('dlg-card').close();
     const taken = q - left;
-    noteUndo(`${q}× ${c.n} staat nu bij Gekocht voor ${eur.format(price)} per stuk.${taken ? ' Van je wantlist afgehaald.' : ''}`, () => {
-      state.bought = state.bought.filter((b) => b.u !== rec.u);
+    noteUndo(`${q}× ${c.n} staat nu bij Gekocht voor ${eur.format(price)} per stuk.${taken ? ' Van je wantlist afgehaald.' : ''} Ook in je Collectie gezet.`, () => {
+      state.bought = state.bought.filter((b) => b.u !== rec.u); collUndoAdd(cinfo);
       for (const s of snaps) { const cur = state.items.findIndex((i) => i.u === s.snap.u); if (cur >= 0) { const it = state.items[cur]; it.qty = (it.qty || 1) + s.take; if (it.qty === 1) delete it.qty; } else state.items.splice(Math.min(s.ix, state.items.length), 0, s.snap); }
       persist(); runSearch(); renderWantlist(); renderBought();
     });
@@ -2233,18 +2258,19 @@ $('buy-go').addEventListener('click', () => {
     const it = state.items[ix], have = it.qty || 1; q = Math.min(q, have);
     const e = evaluate(it), snap = { ...it }, rec = { u: uid(), name: it.name, ...(it.id ? { id: it.id } : {}), ...(e?.c ? { cid: e.c.id } : {}), qty: q, price, ...(it.deck ? { deck: it.deck } : {}), ...(place ? { place } : {}), ...(nt ? { note: nt } : {}), d: new Date().toISOString().slice(0, 10), t: now };
     if (q >= have) state.items.splice(ix, 1); else { it.qty = have - q; if (it.qty === 1) delete it.qty; }
-    state.bought.push(rec); state.lastPlace = place; sel.clear(); persist(); runSearch(); renderWantlist(); renderBought();
+    state.bought.push(rec); state.lastPlace = place; sel.clear(); persist(); runSearch(); renderWantlist(); renderBought(); const cinfo = collAddBought(rec);
     $('dlg-buy').close();
-    noteUndo(`${q}× ${it.name} staat nu bij Gekocht voor ${eur.format(price)} per stuk.`, () => {
-      state.bought = state.bought.filter((b) => b.u !== rec.u);
+    noteUndo(`${q}× ${it.name} staat nu bij Gekocht voor ${eur.format(price)} per stuk. Ook in je Collectie gezet.`, () => {
+      state.bought = state.bought.filter((b) => b.u !== rec.u); collUndoAdd(cinfo);
       const cur = state.items.findIndex((i) => i.u === snap.u);
       if (cur >= 0) { const c = state.items[cur]; c.qty = (c.qty || 1) + q; if (c.qty === 1) delete c.qty; } else state.items.splice(Math.min(ix, state.items.length), 0, snap);
       persist(); runSearch(); renderWantlist(); renderBought();
     });
   } else {
     const b = state.bought.find((x) => x.u === buyCtx.boughtU); if (!b) return;
+    collRemoveBought(b);
     Object.assign(b, { qty: q, price, t: now }); if (place) b.place = place; else delete b.place; if (nt) b.note = nt; else delete b.note;
-    state.lastPlace = place; persist(); renderBought(); $('dlg-buy').close();
+    collAddBought(b); state.lastPlace = place; persist(); renderBought(); $('dlg-buy').close();
   }
 });
 const bQ = { q: '' };
@@ -2267,15 +2293,15 @@ $('b-out').addEventListener('click', (e) => {
   const bk = e.target.closest('[data-bback]');
   if (bk) {
     const i = (state.bought || []).findIndex((x) => x.u === bk.dataset.bback); if (i < 0) return; const b = state.bought[i];
-    state.bought.splice(i, 1);
+    state.bought.splice(i, 1); collRemoveBought(b);
     const ex = state.items.find((x) => norm(x.name) === norm(b.name) && (x.id || '') === (b.id || '') && (x.deck || '') === (b.deck || ''));
     let addedU = null; if (ex) { ex.qty = (ex.qty || 1) + b.qty; } else { addedU = uid(); state.items.push({ name: b.name, ...(b.id ? { id: b.id } : {}), ...(b.deck ? { deck: b.deck } : {}), ...(b.qty > 1 ? { qty: b.qty } : {}), u: addedU }); }
     persist(); runSearch(); renderWantlist(); renderBought();
-    noteUndo(`${b.name} staat weer op je wantlist.`, () => { if (ex) { ex.qty = (ex.qty || 1) - b.qty; if (ex.qty <= 1) delete ex.qty; } else state.items = state.items.filter((x) => x.u !== addedU); state.bought.splice(Math.min(i, state.bought.length), 0, b); persist(); runSearch(); renderWantlist(); renderBought(); });
+    noteUndo(`${b.name} staat weer op je wantlist.`, () => { if (ex) { ex.qty = (ex.qty || 1) - b.qty; if (ex.qty <= 1) delete ex.qty; } else state.items = state.items.filter((x) => x.u !== addedU); state.bought.splice(Math.min(i, state.bought.length), 0, b); collAddBought(b); persist(); runSearch(); renderWantlist(); renderBought(); });
     return;
   }
   const dl = e.target.closest('[data-bdel]');
-  if (dl) { const i = state.bought.findIndex((x) => x.u === dl.dataset.bdel); if (i < 0) return; const b = state.bought[i]; state.bought.splice(i, 1); persist(); renderBought(); noteUndo(`Aankoop van ${b.name} verwijderd.`, () => { state.bought.splice(Math.min(i, state.bought.length), 0, b); persist(); renderBought(); }); }
+  if (dl) { const i = state.bought.findIndex((x) => x.u === dl.dataset.bdel); if (i < 0) return; const b = state.bought[i]; state.bought.splice(i, 1); collRemoveBought(b); persist(); renderBought(); noteUndo(`Aankoop van ${b.name} verwijderd (ook uit je Collectie gehaald).`, () => { state.bought.splice(Math.min(i, state.bought.length), 0, b); collAddBought(b); persist(); renderBought(); }); }
 });
 $('b-copy').addEventListener('click', async () => {
   const list = (state.bought || []).slice().sort((a, b) => (a.t || 0) - (b.t || 0));
