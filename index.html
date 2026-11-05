@@ -195,6 +195,20 @@ body:not([data-tab="coll"]) #sec-coll{display:none}
 body:not([data-tab="bought"]) #sec-bought{display:none}
 body[data-tab="bought"] #sec-wantlist,body[data-tab="bought"] #sec-search,body[data-tab="bought"] #sec-decks{display:none}
 .tabs{display:flex;gap:6px;max-width:1100px;margin:12px auto 0;padding:0 16px}
+body:not([data-tab="resell"]) #sec-resell{display:none}
+body[data-tab="resell"] #sec-wantlist,body[data-tab="resell"] #sec-search,body[data-tab="resell"] #sec-decks,body[data-tab="resell"] #sec-bought{display:none}
+.rvr{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px 4px;border-top:1px solid var(--line);cursor:pointer}
+.rvr:hover{background:color-mix(in srgb,var(--muted) 8%,transparent)}
+.rvr .th img{width:44px;height:auto;border-radius:4px;display:block}
+.rvr .rvm small{display:block;color:var(--muted)}
+.rvr .rvm b{font-weight:700}
+.rvp{text-align:right;white-space:nowrap}.rvp b{display:block;font-size:16px}.rvp small{color:var(--muted)}
+.rvp.win b{color:var(--good,#1d7a3a)}.rvp.lose b{color:var(--bad,#c0392b)}
+.rvbadge{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,#1d7a3a 18%,transparent);color:#1d7a3a}
+.rvbadge.no{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
+.rvsum{display:block;margin-top:2px}
+.dres{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.dres b{display:block;margin-bottom:4px}.dres small{display:block;color:var(--muted)}
+.dres .win{color:#1d7a3a;font-weight:700}.dres .lose{color:var(--bad,#c0392b);font-weight:700}
 .tabs button{border:1px solid var(--line);background:var(--panel);border-radius:8px 8px 0 0;padding:10px 20px;font-weight:600}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
@@ -445,7 +459,7 @@ label>.dd .ddl,.cdform .dd .ddl,.maprow .dd .ddl,.fgrp .dd .ddl{flex:1}
 @media (max-width:899px){.dhead{flex-wrap:wrap}.dpie{flex:1 1 100%}}
 .rbtns{white-space:nowrap}.btn.mini.rej{padding:2px 8px;color:var(--muted)}.btn.mini.rej:hover{color:#d1553a;border-color:#d1553a}.rejbox{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
 .btn.mini.buy{display:block;margin-top:6px}
-@media (max-width:899px){.tabs{gap:2px}.tabs button{padding:12px 4px!important;font-size:13px;min-width:0}}
+@media (max-width:899px){.tabs{gap:2px;overflow-x:auto}.tabs button{padding:12px 6px!important;font-size:13px;min-width:0;flex:1 0 auto}}
 .bl td{vertical-align:middle}.bl .bt{white-space:nowrap}.bl .bact{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 #dlg-buy .fld{display:block;margin:0 0 10px}#dlg-buy .fld input{width:100%}
 #buy-card{margin-bottom:12px!important}
@@ -499,6 +513,7 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
   <button id="tab-decks" aria-selected="false">Decks</button>
   <button id="tab-search" aria-selected="false">Zoeken</button>
   <button id="tab-bought" aria-selected="false">Gekocht</button>
+  <button id="tab-resell" aria-selected="false">Doorverkoop</button>
 </nav>
 
 <main>
@@ -613,6 +628,20 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
     <p class="summary" id="b-total"></p>
     <div class="toolbar"><input type="search" id="b-q" placeholder="Zoek in gekochte kaarten…" autocomplete="off" aria-label="Zoek in gekochte kaarten"><button class="btn" id="b-copy">Kopieer lijst</button></div>
     <div id="b-out"></div>
+  </section>
+
+  <section class="card" id="sec-resell" aria-label="Doorverkoop">
+    <h2>Doorverkoop</h2>
+    <p class="summary" id="rv-sum"></p>
+    <div class="toolbar"><input type="search" id="rv-q" placeholder="Zoek een kaart…" autocomplete="off" aria-label="Zoek een kaart voor doorverkoop"></div>
+    <div class="toolbar" id="rv-opts">
+      <select id="rv-scope" aria-label="Welke kaarten"><option value="all">Alle kaarten</option><option value="coll">Mijn collectie</option><option value="want">Mijn wantlist</option></select>
+      <select id="rv-foil" aria-label="Foil"><option value="all">Foil en non-foil</option><option value="0">Alleen non-foil</option><option value="1">Alleen foil</option></select>
+      <label class="chk"><input type="checkbox" id="rv-win" checked> Alleen met winst</label>
+      <label class="chk">min. winst € <input type="number" id="rv-min" min="0" step="0.25" inputmode="decimal" value="0" style="width:72px"></label>
+      <label class="chk">verzending € <input type="number" id="rv-ship" min="0" step="0.05" inputmode="decimal" style="width:72px" aria-label="Verzendkosten per kaart bij inkoop"></label>
+    </div>
+    <div id="rv-out"></div>
   </section>
 
   <section class="card" id="sec-search" aria-label="Zoeken">
@@ -761,6 +790,7 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
         <div class="btnrow" style="margin:0 0 12px"><button class="btn primary" id="d-add">+ Wantlist</button><button class="btn" id="d-other">Andere uitvoering</button><button class="btn" id="d-bought">Gekocht</button></div>
         <div class="verdict" id="d-verdict"></div>
         <div id="d-src"></div>
+        <div id="d-resell"></div>
         <div id="d-coll"></div>
         <p class="foot" id="d-foot"></p>
       </div>
@@ -1021,7 +1051,7 @@ function renderResults(list) {
     const c = cheapest(sActive() ? { list: g.list.filter(passSF) } : g), p = price(c), nl = new Set(state.items.filter((i) => norm(i.name) === g.key).map((i) => i.deck || '')).size;
     return `<li><div class="row" data-open="${esc(g.key)}" role="button" tabindex="0" aria-label="${esc(g.name)}: kies uitvoering">
       <img loading="lazy" alt="" src="${smallImg(c)}">
-      <div class="t"><b>${esc(g.name)}</b><span>${g.list.length} ${g.list.length === 1 ? 'uitvoering' : 'uitvoeringen'}</span></div>
+      <div class="t"><b>${esc(g.name)}</b><span>${g.list.length} ${g.list.length === 1 ? 'uitvoering' : 'uitvoeringen'}${blNameBadge(g)}</span></div>
       <div class="p num">${p != null ? 'vanaf<br><b>' + eur.format(p) + '</b>' : '–'}</div>
       <button class="btn mini" data-add="${esc(g.key)}" title="Aan lijst(en) toevoegen">${nl ? '✓ ' + nl + (nl === 1 ? ' lijst' : ' lijsten') : '+ Lijst'}</button>
     </div></li>`;
@@ -1042,7 +1072,7 @@ function openPicker(g, hint, itemIndex = null) {
     return `<button class="pick ${hit ? 'hit' : ''}" data-card="${c.id}" aria-label="${esc(c.sn)} nummer ${esc(c.cn)}">
       <img loading="lazy" alt="" src="${smallImg(c)}">
       <b>${esc(c.s)} #${esc(c.cn)}${c.f ? '<span class="badge">foil</span>' : ''}</b>
-      <span>${esc((c.d || '').slice(0, 4))} · ${pr != null ? eur.format(pr) : '–'}</span></button>`;
+      <span>${esc((c.d || '').slice(0, 4))} · ${pr != null ? eur.format(pr) : '–'}</span>${blPickLine(c)}</button>`;
   }).join('');
   if (!$('dlg-pick').open) $('dlg-pick').showModal();
   $('pick-grid').scrollTop = 0; $('dlg-pick').scrollTop = 0;
@@ -1078,6 +1108,7 @@ function openCard(id, fromPicker) {
     v.innerHTML = `<div class="big">Geen prijs gevonden</div><small>Voor deze uitvoering heeft Cardmarket geen prijs in de prijslijst.</small>`;
   }
   $('d-coll').innerHTML = dCollHtml(c);
+  $('d-resell').innerHTML = resellHtml(c); if (!BL && blState === 'idle') blLoad();
   $('d-foot').innerHTML = `Prijzen van Cardmarket, bijgewerkt ${meta.updated ? ago(meta.updated) : 'onbekend'}.`;
   $('d-add').dataset.id = c.id;
   const ix = pickCtx?.itemIndex;
@@ -1936,11 +1967,12 @@ $('io-import').addEventListener('click', () => {
     $('set-thr').value = state.thr; $('set-ship').value = state.ship; $('set-disc').value = state.disc; runSearch(); renderWantlist(); $('dlg-io').close(); note('Wantlist geïmporteerd.', 2500);
   } catch (e) { note('Importeren mislukt: ' + e.message, 4000); }
 });
-function setTab(t) { document.body.dataset.tab = t; if (t === 'bought') renderBought(); for (const k of ['wantlist', 'coll', 'decks', 'search', 'bought']) $('tab-' + k).setAttribute('aria-selected', t === k); if (t === 'coll') cRender(); }
+function setTab(t) { document.body.dataset.tab = t; if (t === 'bought') renderBought(); for (const k of ['wantlist', 'coll', 'decks', 'search', 'bought', 'resell']) $('tab-' + k).setAttribute('aria-selected', t === k); if (t === 'coll') cRender(); if (t === 'resell') { blLoad(); rvRender(); } if (t === 'search') blLoad(); }
 $('tab-wantlist').addEventListener('click', () => setTab('wantlist'));
 $('tab-decks').addEventListener('click', () => { setTab('decks'); renderDecks(); });
 $('tab-search').addEventListener('click', () => { setTab('search'); $('q').focus(); });
 $('tab-bought').addEventListener('click', () => setTab('bought'));
+$('tab-resell').addEventListener('click', () => setTab('resell'));
 
 /* ---------- plaatjes offline bewaren ---------- */
 const IMGCACHE = 'wl-img-v1';
@@ -2205,6 +2237,124 @@ function openBuy(ctx) {
   $('buy-places').innerHTML = [...new Set((state.bought || []).map((b) => b.place).filter(Boolean))].map((p) => `<option value="${esc(p)}">`).join('');
   $('dlg-buy').showModal(); $('buy-price').focus(); $('buy-price').select();
 }
+/* ---------- doorverkoop: inkoopprijzen van Arcana Frisia en Bazaar of Magic ---------- */
+let BL = null, blState = 'idle';
+const rv = { q: '', scope: 'all', foil: 'all', win: true, min: 0, ship: null, limit: 100 };
+function blIndex(d) {
+  const ents = new Map();
+  const get = (c, foil) => { const k = c.id + '|' + foil; let e = ents.get(k); if (!e) { e = { c, foil, k: norm(c.n), a: null, aMax: 0, aLim: 0, b: null }; ents.set(k, e); } return e; };
+  const cmOf = (c, foil) => (foil ? (c.tf ?? null) : (c.f ? null : (c.t ?? null)));
+  for (const r of d.rows) {
+    const [ni, set, foil, a, aMax, aLim, aNum, b] = r, name = d.names[ni]; let c = null;
+    if (aNum != null) c = bySetCn.get(String(set).toUpperCase() + '|' + aNum) || null;
+    if (!c) {
+      const g = byName.get(norm(name)) || byFace.get(norm(name));
+      if (g) { const inSet = g.list.filter((x) => x.s.toLowerCase() === set); for (const x of inSet) if (!c || (cmOf(x, foil) ?? 1e9) < (cmOf(c, foil) ?? 1e9)) c = x; }
+    }
+    if (!c) continue;
+    const e = get(c, foil ? 1 : 0);
+    if (a != null) { e.a = a; e.aMax = aMax || 0; e.aLim = aLim ? 1 : 0; }
+    if (b) e.b = b;
+  }
+  const list = [];
+  for (const e of ents.values()) { e.cm = cmOf(e.c, e.foil); list.push(e); }
+  return { updated: d.updated, list, byCard: ents };
+}
+async function blLoad() {
+  if (BL || blState === 'loading') return;
+  blState = 'loading';
+  try {
+    let d = null;
+    try { const r = await fetch('data/buylist.json', { cache: 'no-store' }); if (r.ok) { d = await r.json(); DB.set('buylist', d).catch(() => {}); } } catch {}
+    if (!d) d = await DB.get('buylist');
+    if (!d || !Array.isArray(d.rows)) throw new Error('geen data');
+    BL = blIndex(d); blState = 'ok';
+  } catch { blState = 'fout'; }
+  rvRender(); try { if (document.body.dataset.tab === 'search') runSearch(); } catch {}
+  const id = +$('d-add').dataset.id; if ($('dlg-card').open && id) { const c = byId.get(id); if (c) $('d-resell').innerHTML = resellHtml(c); }
+}
+const rvShip = () => (rv.ship != null ? rv.ship : (state.ship || 0));
+function blBest(e) { const a = e.a != null && !e.aLim ? e.a : 0, b = e.b || 0; return Math.max(a, b); }
+function blProfit(e, ship) { const best = blBest(e); if (!best || e.cm == null) return null; const cost = e.cm + ship; return { best, cost, win: best - cost, pct: cost > 0 ? (best - cost) / cost : null }; }
+const sgn = (v) => (v >= 0 ? '+' : '−') + eur.format(Math.abs(v));
+function resellHtml(c) {
+  if (blState === 'fout') return '';
+  if (!BL) return blState === 'loading' ? '<div class="dres"><small>Inkoopprijzen laden…</small></div>' : '';
+  const out = [];
+  for (const foil of [0, 1]) {
+    const e = BL.byCard.get(c.id + '|' + foil); if (!e) continue;
+    const p = blProfit(e, state.ship || 0);
+    const bids = [e.a != null ? `Arcana ${eur.format(e.a)}${e.aLim ? ' (limiet bereikt)' : e.aMax ? ' (max ' + e.aMax + ')' : ''}` : '', e.b ? `Bazaar ${eur.format(e.b)}` : ''].filter(Boolean).join(' · ');
+    out.push(`<small><b style="display:inline">${foil ? 'Foil' : 'Non-foil'}:</b> ${bids || 'geen bod'}${p ? ` → ${p.win >= 0 ? '<span class="win">winst ' : '<span class="lose">verlies '}${eur.format(Math.abs(p.win))}${p.pct != null ? ' (' + (p.pct >= 0 ? '+' : '−') + Math.round(Math.abs(p.pct) * 100) + '%)' : ''}</span> t.o.v. kopen voor ${eur.format(p.cost)}` : ''}</small>`);
+  }
+  if (!out.length) return '<div class="dres"><b>Doorverkoop</b><small>Geen inkoopbod van Arcana Frisia of Bazaar of Magic voor deze uitvoering.</small></div>';
+  return `<div class="dres"><b>Doorverkoop aan een winkel</b>${out.join('')}<small>Inkoopprijzen van ${esc(BL.updated || '?')}, voor Near Mint. Kopen = Cardmarket-trend${(state.ship || 0) ? ' + verzending' : ''}.</small></div>`;
+}
+function blNameBadge(g) {
+  if (!BL) { if (blState === 'idle') blLoad(); return ''; }
+  let best = null;
+  for (const c of g.list) for (const foil of [0, 1]) { const e = BL.byCard.get(c.id + '|' + foil); if (!e) continue; const p = blProfit(e, state.ship || 0); if (p && (best == null || p.win > best)) best = p.win; }
+  if (best == null) return '';
+  return best > 0.005 ? `<span class="rvbadge" title="Beste winst bij doorverkopen aan Arcana Frisia of Bazaar of Magic">verkoop tot ${sgn(best)}</span>` : `<span class="rvbadge no" title="Doorverkopen levert bij geen enkele uitvoering winst op">verkoop ${sgn(best)}</span>`;
+}
+function blPickLine(c) {
+  if (!BL) return '';
+  const e = BL.byCard.get(c.id + '|' + (c.f ? 1 : 0)); if (!e) return '';
+  const p = blProfit(e, state.ship || 0); if (!p) return '';
+  return `<span style="display:block;font-weight:700;color:${p.win > 0.005 ? '#1d7a3a' : 'var(--muted)'}">verkoop ${sgn(p.win)}</span>`;
+}
+function blBadge(c) {
+  if (!BL) return '';
+  const e = BL.byCard.get(c.id + '|' + (c.f ? 1 : 0)); if (!e) return '';
+  const p = blProfit(e, state.ship || 0); if (!p) return '';
+  return p.win > 0.005 ? `<span class="rvbadge" title="Verkopen aan een winkel levert winst op">verkoop ${sgn(p.win)}</span>` : `<span class="rvbadge no" title="Verkopen aan een winkel levert geen winst op">verkoop ${sgn(p.win)}</span>`;
+}
+function rvRender() {
+  const out = $('rv-out'); if (!out) return;
+  if (document.body.dataset.tab !== 'resell') return;
+  $('rv-ship').placeholder = String(state.ship || 0);
+  if (blState === 'loading' || blState === 'idle') { $('rv-sum').textContent = ''; out.innerHTML = '<div class="empty">Inkoopprijzen laden…</div>'; return; }
+  if (!BL) { $('rv-sum').textContent = ''; out.innerHTML = '<div class="empty">De inkoopprijzen van de winkels staan nog niet in de app. Zet het bestand buylist.json in de map data van je GitHub-repo (zie de uitleg van Claude).</div>'; return; }
+  const ship = rvShip(), q = norm(rv.q), toks = q ? q.split(' ') : [];
+  let own = null, want = null;
+  if (rv.scope === 'coll') { own = new Map(); for (const r of coll) if (!r.d) own.set(norm(r.n || ''), (own.get(norm(r.n || '')) || 0) + r.q); }
+  if (rv.scope === 'want') { want = new Set(state.items.map((i) => norm(i.name))); }
+  const rows = [];
+  for (const e of BL.list) {
+    if (rv.foil !== 'all' && String(e.foil) !== rv.foil) continue;
+    if (toks.length && !toks.every((t) => e.k.includes(t))) continue;
+    if (own && !own.has(e.k)) continue;
+    if (want && !want.has(e.k)) continue;
+    const p = blProfit(e, ship);
+    if (rv.win && !(p && p.win > 0 && p.win >= rv.min)) continue;
+    rows.push({ e, p });
+  }
+  rows.sort((a, b) => (b.p ? b.p.win : -1e9) - (a.p ? a.p.win : -1e9));
+  const wins = rows.filter((x) => x.p && x.p.win > 0).length;
+  $('rv-sum').innerHTML = `<b>${rows.length.toLocaleString('nl-NL')}</b> kaarten${rv.win ? ' met winst' : ` (${wins.toLocaleString('nl-NL')} met winst)`} · inkoopprijzen van ${esc(BL.updated || '?')}. Winst = beste bod van een winkel min Cardmarket-trend${ship ? ' min verzending ' + eur.format(ship) : ''}. Indicatie: de trend is een gemiddelde over alle condities, een Near Mint-exemplaar kost vaak meer.`;
+  if (!rows.length) { out.innerHTML = `<div class="empty">${q || rv.scope !== 'all' ? 'Geen kaarten gevonden met deze filters.' : 'Geen kaarten met winst.'}</div>`; return; }
+  const shown = rows.slice(0, rv.limit);
+  out.innerHTML = shown.map(({ e, p }) => {
+    const c = e.c, ownN = own ? own.get(e.k) : 0;
+    const bids = [e.a != null ? `Arcana ${eur.format(e.a)}${e.aLim ? ' (limiet)' : ''}` : '', e.b ? `Bazaar ${eur.format(e.b)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="rvr" data-card="${c.id}" role="button" tabindex="0"><span class="th">${c.i ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span><div class="rvm"><b>${esc(c.n)}</b>${e.foil ? '<span class="deck">foil</span>' : ''}${ownN ? `<span class="deck">${ownN}× in collectie</span>` : ''}<small>${esc(c.sn)} #${esc(c.cn)} · kopen ${e.cm != null ? eur.format(e.cm) : '–'}${ship ? ' + ' + eur.format(ship) : ''}</small><small>${bids}</small></div><div class="rvp ${p ? (p.win > 0 ? 'win' : 'lose') : ''}">${p ? `<b>${sgn(p.win)}</b><small>${p.pct != null ? (p.pct >= 0 ? '+' : '−') + Math.round(Math.abs(p.pct) * 100) + '%' : ''}</small>` : '<b>–</b>'}</div></div>`;
+  }).join('') + (rows.length > shown.length ? `<div style="text-align:center;margin:12px 0"><button class="btn" id="rv-more">Toon meer (nog ${(rows.length - shown.length).toLocaleString('nl-NL')})</button></div>` : '');
+}
+{
+  let t = 0;
+  $('rv-q').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { rv.q = e.target.value; rv.limit = 100; rvRender(); }, 150); });
+  $('rv-opts').addEventListener('change', (e) => {
+    if (e.target.id === 'rv-scope') rv.scope = e.target.value; else if (e.target.id === 'rv-foil') rv.foil = e.target.value; else if (e.target.id === 'rv-win') rv.win = e.target.checked;
+    else if (e.target.id === 'rv-min') rv.min = Math.max(0, num(e.target.value) ?? 0); else if (e.target.id === 'rv-ship') rv.ship = e.target.value === '' ? null : Math.max(0, num(e.target.value) ?? 0);
+    rv.limit = 100; rvRender();
+  });
+  $('rv-out').addEventListener('click', (e) => {
+    if (e.target.id === 'rv-more') { rv.limit += 200; rvRender(); return; }
+    const row = e.target.closest('[data-card]'); if (row) openCard(+row.dataset.card);
+  });
+  $('rv-out').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; const row = e.target.closest('[data-card]'); if (row) openCard(+row.dataset.card); });
+}
+
 /* aankoop -> Collectie */
 function collSpecOf(rec) { return { id: rec.id || rec.cid || 0, n: rec.name, f: 0, c: 'NM', l: 'EN', p: rec.place || '' }; }
 function collAddBought(rec) {
@@ -2892,7 +3042,7 @@ function sortable(box, itemSel, done) {
     document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
   });
 }
-const TAB_DEF = { wantlist: 'Alle kaarten', coll: 'Collectie', decks: 'Decks', search: 'Zoeken', bought: 'Gekocht' };
+const TAB_DEF = { wantlist: 'Alle kaarten', coll: 'Collectie', decks: 'Decks', search: 'Zoeken', bought: 'Gekocht', resell: 'Doorverkoop' };
 function tabCfg() {
   const t = state.tabs && typeof state.tabs === 'object' ? state.tabs : {};
   const order = (t.order || []).filter((k) => TAB_DEF[k]); for (const k of Object.keys(TAB_DEF)) if (!order.includes(k)) order.push(k);
@@ -3059,7 +3209,7 @@ function sRenderSet(qv) {
     ul.hidden = true; grid.hidden = false;
     grid.innerHTML = shown.map((c) => { const p = price(c); return `<button type="button" class="pick" data-card="${c.id}" aria-label="${esc(c.n)} nummer ${esc(c.cn)}"><img loading="lazy" alt="" src="${smallImg(c)}"><b>${esc(c.n)}</b><span>#${esc(c.cn)} · ${p != null ? eur.format(p) : '–'}</span></button>`; }).join('');
   } else {
-    ul.innerHTML = shown.map((c) => { const p = price(c); return `<li><div class="row" data-card="${c.id}" role="button" tabindex="0" aria-label="${esc(c.n)}: bekijk kaart"><img loading="lazy" alt="" src="${smallImg(c)}"><div class="t"><b>${esc(c.n)}</b><span>#${esc(c.cn)} · ${esc(RARITY[c.r] || '')}${c.f ? ' · alleen foil' : ''}</span></div><div class="p num">${p != null ? '<b>' + eur.format(p) + '</b>' : '–'}</div><button class="btn mini" data-addc="${c.id}" title="Aan lijst(en) toevoegen">+ Lijst</button></div></li>`; }).join('');
+    ul.innerHTML = shown.map((c) => { const p = price(c); return `<li><div class="row" data-card="${c.id}" role="button" tabindex="0" aria-label="${esc(c.n)}: bekijk kaart"><img loading="lazy" alt="" src="${smallImg(c)}"><div class="t"><b>${esc(c.n)}</b><span>#${esc(c.cn)} · ${esc(RARITY[c.r] || '')}${c.f ? ' · alleen foil' : ''}${blBadge(c)}</span></div><div class="p num">${p != null ? '<b>' + eur.format(p) + '</b>' : '–'}</div><button class="btn mini" data-addc="${c.id}" title="Aan lijst(en) toevoegen">+ Lijst</button></div></li>`; }).join('');
   }
   more.hidden = L.length <= sS.limit; more.dataset.k = 'cards'; more.textContent = `Toon meer kaarten (${L.length - sS.limit} te gaan)`;
   let tot = 0; for (const c of L) tot += price(c) || 0;
