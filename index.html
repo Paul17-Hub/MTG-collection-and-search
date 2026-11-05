@@ -207,6 +207,12 @@ body[data-tab="resell"] #sec-wantlist,body[data-tab="resell"] #sec-search,body[d
 .rvbadge{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,#1d7a3a 18%,transparent);color:#1d7a3a}
 .rvbadge.no{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
 .rvsum{display:block;margin-top:2px}
+.shopbox{margin:12px 0}.shopbox>small{display:block;color:var(--muted);margin-top:6px;font-size:12px}.shophd{font-weight:700;margin-bottom:6px}
+.shop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line);border-left-width:5px}
+.shop.a{border-left-color:#1f6f73;background:color-mix(in srgb,#1f6f73 10%,transparent)}.shop.b{border-left-color:#c25f00;background:color-mix(in srgb,#c25f00 10%,transparent)}
+.shop small{display:block;color:var(--muted);font-size:12px}.shop small.win{color:#1d7a3a;font-weight:700}.shop small.lose{color:var(--bad,#c0392b);font-weight:700}
+.shop .shopp{font-size:20px;font-weight:800;white-space:nowrap}.shop.a .shopp{color:#1f6f73}.shop.b .shopp{color:#c25f00}
+.shop.best{box-shadow:0 0 0 2px #1d7a3a}.shop.dim{opacity:.7}.shop.off{opacity:.55;background:transparent}.shop.off .shopp{color:var(--muted)}
 .dres{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.dres b{display:block;margin-bottom:4px}.dres small{display:block;color:var(--muted)}
 .dres .win{color:#1d7a3a;font-weight:700}.dres .lose{color:var(--bad,#c0392b);font-weight:700}
 .tabs button{border:1px solid var(--line);background:var(--panel);border-radius:8px 8px 0 0;padding:10px 20px;font-weight:600}
@@ -2279,16 +2285,24 @@ function blProfit(e, ship) { const best = blBest(e); if (!best || e.cm == null) 
 const sgn = (v) => (v >= 0 ? '+' : '−') + eur.format(Math.abs(v));
 function resellHtml(c) {
   if (blState === 'fout') return '';
-  if (!BL) return blState === 'loading' ? '<div class="dres"><small>Inkoopprijzen laden…</small></div>' : '';
-  const out = [];
-  for (const foil of [0, 1]) {
-    const e = BL.byCard.get(c.id + '|' + foil); if (!e) continue;
-    const p = blProfit(e, state.ship || 0);
-    const bids = [e.a != null ? `Arcana ${eur.format(e.a)}${e.aLim ? ' (limiet bereikt)' : e.aMax ? ' (max ' + e.aMax + ')' : ''}` : '', e.b ? `Bazaar ${eur.format(e.b)}` : ''].filter(Boolean).join(' · ');
-    out.push(`<small><b style="display:inline">${foil ? 'Foil' : 'Non-foil'}:</b> ${bids || 'geen bod'}${p ? ` → ${p.win >= 0 ? '<span class="win">winst ' : '<span class="lose">verlies '}${eur.format(Math.abs(p.win))}${p.pct != null ? ' (' + (p.pct >= 0 ? '+' : '−') + Math.round(Math.abs(p.pct) * 100) + '%)' : ''}</span> t.o.v. kopen voor ${eur.format(p.cost)}` : ''}</small>`);
-  }
-  if (!out.length) return '<div class="dres"><b>Doorverkoop</b><small>Geen inkoopbod van Arcana Frisia of Bazaar of Magic voor deze uitvoering.</small></div>';
-  return `<div class="dres"><b>Doorverkoop aan een winkel</b>${out.join('')}<small>Inkoopprijzen van ${esc(BL.updated || '?')}, voor Near Mint. Kopen = Cardmarket-trend${(state.ship || 0) ? ' + verzending' : ''}.</small></div>`;
+  if (!BL) return blState === 'loading' ? '<div class="shopbox"><small>Inkoopprijzen laden…</small></div>' : '';
+  const ship = state.ship || 0, main = c.f ? 1 : 0, other = main ? 0 : 1;
+  const e = BL.byCard.get(c.id + '|' + main), e2 = BL.byCard.get(c.id + '|' + other);
+  const p = e ? blProfit(e, ship) : null;
+  const cost = c.f ? price(c) : price(c);
+  const diff = (bid) => { if (!bid || cost == null) return ''; const w = bid - (cost + ship); return `<small class="${w > 0.005 ? 'win' : 'lose'}">${w > 0.005 ? 'winst ' : 'verlies '}${eur.format(Math.abs(w))} t.o.v. kopen voor ${eur.format(cost + ship)}</small>`; };
+  const aOk = e && e.a != null, bOk = e && e.b;
+  const aUrl = aOk ? `https://buylist.arcanafrisia.com/card/${encodeURIComponent(c.s.toLowerCase())}/${encodeURIComponent(c.cn)}/c` : '';
+  const best = p ? p.best : 0;
+  const rowA = aOk
+    ? `<div class="shop a ${e.aLim ? 'dim' : best && e.a === best ? 'best' : ''}"><div><b>Arcana Frisia koopt</b><small>${e.aLim ? 'limiet bereikt: ze hebben er nu genoeg van, prijs is indicatief' : (e.aMax ? 'gewild: ze willen er nog ' + e.aMax + ' stuk' + (e.aMax === 1 ? '' : 's') : 'gewild')}</small>${e.aLim ? '' : diff(e.a)}<small><a href="${aUrl}" target="_blank" rel="noopener noreferrer">Bekijk bij Arcana ↗</a></small></div><div class="shopp">${eur.format(e.a)}</div></div>`
+    : `<div class="shop a off"><div><b>Arcana Frisia koopt</b><small>Niet gewild: geen bod voor deze uitvoering</small></div><div class="shopp">–</div></div>`;
+  const rowB = bOk
+    ? `<div class="shop b ${best && e.b === best ? 'best' : ''}"><div><b>Bazaar of Magic koopt</b><small>gewild voor deze uitvoering</small>${diff(e.b)}</div><div class="shopp">${eur.format(e.b)}</div></div>`
+    : `<div class="shop b off"><div><b>Bazaar of Magic koopt</b><small>Niet gewild (of alleen als bulk)</small></div><div class="shopp">–</div></div>`;
+  let extra = '';
+  if (e2 && (e2.a != null || e2.b)) extra = `<small>Er is ook een bod voor de ${other ? 'foil' : 'non-foil'}-versie: ${[e2.a != null ? 'Arcana ' + eur.format(e2.a) : '', e2.b ? 'Bazaar ' + eur.format(e2.b) : ''].filter(Boolean).join(' · ')}.</small>`;
+  return `<div class="shopbox"><div class="shophd">Doorverkoop aan een winkel</div>${rowA}${rowB}${extra}<small>Inkoopprijzen van ${esc(BL.updated || '?')}, voor Near Mint. Kopen = Cardmarket-trend${ship ? ' + verzending' : ''}: een indicatie.</small></div>`;
 }
 function blNameBadge(g) {
   if (!BL) { if (blState === 'idle') blLoad(); return ''; }
