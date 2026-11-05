@@ -475,6 +475,7 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
   table.ls tbody tr:has(td.c-chk) .qin{display:none}
   table.bl .qin{display:inline}
 }
+.dcoll{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--muted) 8%,transparent)}.dcoll .useln{margin:4px 0 6px}.dcr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}.dcr:first-of-type{margin-top:6px}
 .useln{display:block;margin-top:2px;color:var(--muted)}.useln b{color:var(--ink)}.usetag{display:inline-block;margin-left:4px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--ink)}.usetag.free{background:color-mix(in srgb,#3f9a5f 24%,transparent)}.usetag.short{background:color-mix(in srgb,#d1553a 28%,transparent)}
 </style>
 </head>
@@ -760,6 +761,7 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
         <div class="btnrow" style="margin:0 0 12px"><button class="btn primary" id="d-add">+ Wantlist</button><button class="btn" id="d-other">Andere uitvoering</button><button class="btn" id="d-bought">Gekocht</button></div>
         <div class="verdict" id="d-verdict"></div>
         <div id="d-src"></div>
+        <div id="d-coll"></div>
         <p class="foot" id="d-foot"></p>
       </div>
     </div>
@@ -1075,6 +1077,7 @@ function openCard(id, fromPicker) {
     v.className = 'verdict none';
     v.innerHTML = `<div class="big">Geen prijs gevonden</div><small>Voor deze uitvoering heeft Cardmarket geen prijs in de prijslijst.</small>`;
   }
+  $('d-coll').innerHTML = dCollHtml(c);
   $('d-foot').innerHTML = `Prijzen van Cardmarket, bijgewerkt ${meta.updated ? ago(meta.updated) : 'onbekend'}.`;
   $('d-add').dataset.id = c.id;
   const ix = pickCtx?.itemIndex;
@@ -1290,6 +1293,7 @@ $('results').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const
 $('pick-grid').addEventListener('click', (e) => { const b = e.target.closest('[data-card]'); if (b) openCard(+b.dataset.card, true); });
 $('pick-close').addEventListener('click', () => $('dlg-pick').close());
 $('d-close').addEventListener('click', () => $('dlg-card').close());
+$('d-coll').addEventListener('click', (e) => { const b = e.target.closest('[data-cedit]'); if (b) { $('dlg-card').close(); cOpenDetail(b.dataset.cedit); } });
 $('d-other').addEventListener('click', () => { const c = byId.get(+$('d-add').dataset.id); const ix = pickCtx?.itemIndex ?? null, h = pickCtx?.hint; $('dlg-card').close(); if (c) openPicker(byName.get(norm(c.n)), h, ix); });
 $('d-add').addEventListener('click', () => {
   const c = byId.get(+$('d-add').dataset.id); if (!c) return;
@@ -2289,7 +2293,7 @@ function cUseInfo(k) {
   return { arr, own, used, inDecks: Math.min(used, own), free: Math.max(0, own - used), short: Math.max(0, used - own) };
 }
 let coll = [], collVer = 0, collParts_ = null, collSaveT = 0, collDer = null, cDirty = true;
-const cv = { view: 'list', q: '', place: '', set: '', col: new Set(), ty: new Set(), rar: new Set(), foil: '', cond: '', lang: '', pmin: null, guess: false, noplace: false, use: '', sort: 'name', limit: 100 };
+const cv = { view: 'list', q: '', place: '', set: '', col: new Set(), ty: new Set(), rar: new Set(), foil: '', cond: '', lang: '', pmin: null, guess: false, noplace: false, use: '', group: true, sort: 'name', limit: 100 };
 const cSel = new Set(); let cLast = [], cAnchor = null, cShown = [];
 const bucketOf = (u) => cyrb53(String(u)) % COLL_B;
 const ckey = (r) => [r.id || norm(r.n || ''), r.f ? 1 : 0, r.c || 'NM', r.l || 'EN', String(r.p || '').trim().toLowerCase()].join('|');
@@ -2395,21 +2399,39 @@ function cRender() {
   const stuks = all.reduce((n, it) => n + it.r.q, 0), tot = all.reduce((n, it) => n + it.val, 0), noPrice = all.filter((it) => it.up == null).length;
   let useSum = ''; if (cUse.on && all.length) { let inD = 0, shortN = 0; for (const [k, own] of cUse.owned) { const u = cUseInfo(k); inD += u.inDecks; shortN += u.short; } useSum = ` · <b>${inD.toLocaleString('nl-NL')}</b> in decks, <b>${(stuks - inD).toLocaleString('nl-NL')}</b> vrij${shortN ? ` · <span style="color:var(--bad,#c0392b)">${shortN} te kort</span>` : ''}`; }
   $('c-total').innerHTML = all.length ? `<b>${stuks.toLocaleString('nl-NL')}</b> kaarten (${all.length.toLocaleString('nl-NL')} regels) · geschatte waarde <b>${cards.length ? cEur(tot) : '–'}</b>${noPrice && cards.length ? ` · ${noPrice} zonder prijs` : ''}${places.length ? ` · ${places.length} ${places.length === 1 ? 'plek' : 'plekken'}` : ''}${useSum}` : '';
-  $('c-views').innerHTML = [['list', 'Lijst'], ['grid', 'Plaatjes'], ['place', 'Per plek']].map(([v, l]) => `<button type="button" class="chip ${cv.view === v ? 'on' : ''}" data-view="${v}">${l}</button>`).join('');
+  $('c-views').innerHTML = [['list', 'Lijst'], ['grid', 'Plaatjes'], ['place', 'Per plek']].map(([v, l]) => `<button type="button" class="chip ${cv.view === v ? 'on' : ''}" data-view="${v}">${l}</button>`).join('') + (cv.view === 'list' ? `<button type="button" class="chip ${cv.group ? 'on' : ''}" data-grp="1" title="Alle versies van dezelfde kaart op één regel">Samengevoegd</button>` : '');
   $('c-sort').value = cv.sort; $('c-sort').hidden = cv.view === 'place'; $('c-q').value !== cv.q && ($('c-q').value = cv.q);
   cFilterUI(all);
   const out = $('c-out');
   if (!all.length) { out.innerHTML = '<div class="empty">Je collectie is nog leeg. Tik op “CSV importeren” voor een bestand, of op “Scannen / toevoegen” om kaarten één voor één te scannen of te typen.</div>'; $('c-sum').textContent = ''; cSel.clear(); cLast = []; cBulk(); cDecks(); return; }
   if (cv.view === 'place') { cRenderPlaces(all); cDecks(); return; }
   const rows = all.filter(cPass); rows.sort(cSorts[cv.sort] || cSorts.name);
-  { const vis = new Set(rows.map((x) => x.r.u)); for (const u of [...cSel]) if (!vis.has(u)) cSel.delete(u); }
-  cLast = rows.map((x) => x.r.u);
+  const grouped = cv.group && cv.view === 'list';
+  if (grouped) { cSel.clear(); cLast = []; } else { const vis = new Set(rows.map((x) => x.r.u)); for (const u of [...cSel]) if (!vis.has(u)) cSel.delete(u); cLast = rows.map((x) => x.r.u); }
+  let glist = null;
+  if (grouped) {
+    const gm = new Map();
+    for (const it of rows) { let g = gm.get(it.k); if (!g) { g = { k: it.k, items: [], q: 0, val: 0, rep: it, t: 0 }; gm.set(it.k, g); } g.items.push(it); g.q += it.r.q; g.val += it.val; g.t = Math.max(g.t, it.r.t || 0); if (it.val > g.rep.val) g.rep = it; }
+    glist = [...gm.values()].map((g) => { const places = [...new Set(g.items.map((x) => x.r.p || ''))]; return { ...g, places, r: { n: g.rep.r.n, q: g.q, p: places.length === 1 ? places[0] : (places.find((p) => p) || ''), t: g.t }, c: g.rep.c, up: g.rep.up }; });
+    glist.sort(cSorts[cv.sort] || cSorts.name);
+  }
   const rs = rows.reduce((n, it) => n + it.r.q, 0), rv = rows.reduce((n, it) => n + it.val, 0), n = cActive();
-  $('c-sum').textContent = n || cv.q ? `${rows.length.toLocaleString('nl-NL')} van ${all.length.toLocaleString('nl-NL')} regels · ${rs.toLocaleString('nl-NL')} stuks · ${cards.length ? cEur(rv) : '–'}` : '';
+  $('c-sum').textContent = n || cv.q ? `${grouped ? glist.length.toLocaleString('nl-NL') + ' kaarten · ' : ''}${rows.length.toLocaleString('nl-NL')} van ${all.length.toLocaleString('nl-NL')} regels · ${rs.toLocaleString('nl-NL')} stuks · ${cards.length ? cEur(rv) : '–'}` : '';
   if (!rows.length) { out.innerHTML = '<div class="empty">Geen kaarten die aan het filter voldoen.</div>'; cBulk(); cDecks(); return; }
-  const shown = rows.slice(0, cv.limit); cShown = shown;
-  const more = rows.length > shown.length ? `<div style="text-align:center;margin:12px 0"><button class="btn" id="c-more">Toon meer (nog ${(rows.length - shown.length).toLocaleString('nl-NL')})</button></div>` : '';
-  if (cv.view === 'grid') {
+  const src_ = grouped ? glist : rows;
+  const shown = src_.slice(0, cv.limit); cShown = shown;
+  const more = src_.length > shown.length ? `<div style="text-align:center;margin:12px 0"><button class="btn" id="c-more">Toon meer (nog ${(src_.length - shown.length).toLocaleString('nl-NL')})</button></div>` : '';
+  if (grouped) {
+    out.innerHTML = `<table class="ls bl cl"><thead><tr><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Plek</th><th class="r">Waarde</th><th>Staat</th></tr></thead><tbody>` +
+      shown.map((g) => {
+        const c = g.c, n = g.items.length, nm = g.rep.r.n, anyFoil = g.items.some((x) => x.r.f);
+        const sets = [...new Set(g.items.map((x) => x.c ? x.c.s : '').filter(Boolean))];
+        const sub = n === 1 ? (c ? esc(c.s) + ' #' + esc(c.cn) : 'niet gevonden in de database') : `${n} uitvoeringen${sets.length ? ' · ' + sets.slice(0, 4).map(esc).join(', ') + (sets.length > 4 ? ' …' : '') : ''}`;
+        const plek = g.places.length === 1 ? (g.places[0] ? esc(g.places[0]) : 'geen plek') : `${g.places.length} plekken`;
+        const st = n === 1 ? `${esc(g.rep.r.c || 'NM')} · ${esc(g.rep.r.l || 'EN')}` : 'gemengd';
+        return `<tr data-k="${esc(g.k)}"><td class="c-qty r num"><b>${g.q}</b></td><td class="c-name"><div class="rowf"><div class="cn"><span class="th">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span><div class="nm"><b><span class="qin">${g.q}× </span>${esc(nm)}${anyFoil ? '<span class="deck">foil</span>' : ''}</b><small>${sub}</small>${cUseLine({ k: g.k })}</div></div></div></td><td class="c-price r"><small style="color:var(--muted)">${plek}</small></td><td class="c-koop r">${g.val ? `<span class="big num">${cEur(g.val)}</span>` : '–'}</td><td class="c-sig"><small>${st}</small></td></tr>`;
+      }).join('') + `</tbody></table>${more}`;
+  } else if (cv.view === 'grid') {
     out.innerHTML = `<div class="cgrid">${shown.map(({ r, c, up, val }) => `<button type="button" class="cg ${cSel.has(r.u) ? 'sel' : ''}" data-u="${r.u}" aria-label="${esc(r.n)}">${c ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : '<span class="noimg"></span>'}<span class="qb">${r.q}×</span>${r.f ? '<span class="fb">foil</span>' : ''}<small><b>${esc(r.n)}</b>${r.p ? ' · ' + esc(r.p) : ''}<br>${up != null ? cEur(val) : '–'}</small></button>`).join('')}</div>${more}`;
   } else {
     out.innerHTML = `<table class="ls cl"><thead><tr><th class="c-chk"><label class="selc" title="Alles selecteren (ook wat niet in beeld is)"><input type="checkbox" id="c-selall" aria-label="Alles selecteren"></label></th><th class="c-qty r">Aantal</th><th>Kaart</th><th class="r">Plek</th><th class="r">Waarde</th><th>Staat</th></tr></thead><tbody>` +
@@ -2634,6 +2656,24 @@ function csTyped() {
 
 /* ---------- detail, verplaatsen, exporteren ---------- */
 let cdU = null;
+function cOpenCard(u) {
+  const r = coll.find((x) => x.u === u && !x.d); if (!r) return;
+  const c = rcard(r); if (c) openCard(c.id); else cOpenDetail(u);
+}
+function cOpenGroup(k) {
+  const its = cDerive().filter((x) => x.k === k); if (!its.length) return;
+  const best = its.reduce((a, b) => (b.val > a.val ? b : a), its[0]);
+  if (best.c) openCard(best.c.id); else cOpenDetail(best.r.u);
+}
+function dCollHtml(c) {
+  const k = norm(c.n), rs = coll.filter((r) => !r.d && norm(r.n || '') === k);
+  if (!rs.length) return '';
+  const tot = rs.reduce((n, r) => n + r.q, 0), val = rs.reduce((n, r) => { const cc = rcard(r), up = cc ? unitPrice(r, cc) : null; return n + (up != null ? up * r.q : 0); }, 0);
+  let use = '';
+  if (deckData && deckData.decks && deckData.decks.length) { cUse.on = true; cUse.needs = deckNeeds(); cUse.owned.set(k, tot); use = cUseLine({ k }); }
+  const rows = rs.slice().sort((a, b) => (b.q - a.q)).map((r) => { const cc = rcard(r); return `<div class="dcr"><span><b>${r.q}×</b> ${cc ? esc(cc.sn) + ' #' + esc(cc.cn) : 'onbekende uitvoering'} · ${esc(r.c || 'NM')} · ${esc(r.l || 'EN')}${r.f ? ' · foil' : ''} · ${r.p ? esc(r.p) : 'geen plek'}</span><button type="button" class="btn mini" data-cedit="${r.u}">Bewerken</button></div>`; }).join('');
+  return `<div class="dcoll"><b>In je collectie: ${tot}×</b>${val ? ' · ' + cEur(val) : ''}${use}${rows}</div>`;
+}
 function cOpenDetail(u) {
   const r = coll.find((x) => x.u === u && !x.d); if (!r) return; cdU = u;
   const c = rcard(r), g = c ? byName.get(norm(c.n)) : null;
@@ -2685,7 +2725,7 @@ function cExport() {
 /* ---------- events collectie ---------- */
 let cqT; $('c-q').addEventListener('input', (e) => { clearTimeout(cqT); cqT = setTimeout(() => { cv.q = e.target.value; cv.limit = 100; cRender(); }, 150); });
 $('c-sort').addEventListener('change', (e) => { cv.sort = e.target.value; cRender(); });
-$('c-views').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) { cv.view = b.dataset.view; cv.limit = cv.view === 'grid' ? 60 : 100; cRender(); } });
+$('c-views').addEventListener('click', (e) => { const gb = e.target.closest('[data-grp]'); if (gb) { cv.group = !cv.group; cv.limit = 100; cRender(); return; } const b = e.target.closest('[data-view]'); if (b) { cv.view = b.dataset.view; cv.limit = cv.view === 'grid' ? 60 : 100; cRender(); } });
 $('c-fpanel').addEventListener('click', (e) => {
   const b = e.target.closest('[data-ck]'); if (b) { const s = cv[b.dataset.ck], v = b.dataset.v; s.has(v) ? s.delete(v) : s.add(v); cv.limit = 100; cRender(); return; }
   if (e.target.id === 'cf-clear') { cv.place = cv.set = cv.foil = cv.cond = cv.lang = ''; cv.col.clear(); cv.ty.clear(); cv.rar.clear(); cv.pmin = null; cv.guess = cv.noplace = false; cv.use = ''; cRender(); }
@@ -2708,7 +2748,8 @@ $('c-out').addEventListener('click', (e) => {
   }
   if (e.target.id === 'c-selall') { if (e.target.checked) cLast.forEach((u) => cSel.add(u)); else cSel.clear(); cBulk(); return; }
   if (e.target.closest('label.selc')) return;
-  const row = e.target.closest('[data-u]'); if (row) cOpenDetail(row.dataset.u);
+  const gk = e.target.closest('tr[data-k]'); if (gk) { cOpenGroup(gk.dataset.k); return; }
+  const row = e.target.closest('[data-u]'); if (row) cOpenCard(row.dataset.u);
 });
 $('c-bulk-move').addEventListener('click', () => cOpenMove({}));
 $('c-bulk-del').addEventListener('click', cDelete);
