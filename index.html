@@ -208,6 +208,7 @@ body[data-tab="resell"] #sec-wantlist,body[data-tab="resell"] #sec-search,body[d
 .rvbadge.no{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
 .rvsum{display:block;margin-top:2px}
 .rvset{margin:6px 0 10px;color:var(--muted)}.rvset .chk{display:inline-flex;margin-right:14px}
+.rvr a.shl{color:var(--accent,#3a5bd9);text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .shopbox{margin:12px 0}.shopbox>small{display:block;color:var(--muted);margin-top:6px;font-size:12px}.shophd{font-weight:700;margin-bottom:6px}
 .shop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line);border-left-width:5px}
 .shop.a{border-left-color:#1f6f73;background:color-mix(in srgb,#1f6f73 10%,transparent)}.shop.b{border-left-color:#c25f00;background:color-mix(in srgb,#c25f00 10%,transparent)}
@@ -2269,7 +2270,7 @@ function blIndex(d) {
   const get = (c, foil) => { const k = c.id + '|' + foil; let e = ents.get(k); if (!e) { e = { c, foil, k: norm(c.n), a: null, aMax: 0, aLim: 0, b: null }; ents.set(k, e); } return e; };
   const cmOf = (c, foil) => (foil ? (c.tf ?? null) : (c.f ? null : (c.t ?? null)));
   for (const r of d.rows) {
-    const [ni, set, foil, a, aMax, aLim, aNum, b] = r, name = d.names[ni]; let c = null;
+    const [ni, set, foil, a, aMax, aLim, aNum, b, bPid] = r, name = d.names[ni]; let c = null;
     if (aNum != null) c = bySetCn.get(String(set).toUpperCase() + '|' + aNum) || null;
     if (!c) {
       const g = byName.get(norm(name)) || byFace.get(norm(name));
@@ -2277,8 +2278,8 @@ function blIndex(d) {
     }
     if (!c) continue;
     const e = get(c, foil ? 1 : 0);
-    if (a != null) { e.a = a; e.aMax = aMax || 0; e.aLim = aLim ? 1 : 0; }
-    if (b) e.b = b;
+    if (a != null) { e.a = a; e.aMax = aMax || 0; e.aLim = aLim ? 1 : 0; e.aSet = String(set); e.aNum = aNum != null ? String(aNum) : null; }
+    if (b) { e.b = b; e.bPid = bPid || null; }
   }
   const list = [];
   for (const e of ents.values()) { e.cm = cmOf(e.c, e.foil); list.push(e); }
@@ -2301,6 +2302,8 @@ const rvShip = () => (rv.ship != null ? rv.ship : (state.ship || 0));
 function blBest(e) { const a = e.a != null && !e.aLim ? e.a : 0, b = e.b || 0; return Math.max(a, b) * rvBidF(); }
 function blProfit(e, ship) { const best = blBest(e); if (!best || e.cm == null) return null; const cost = e.cm * rvCostF() + ship; return { best, cost, win: best - cost, pct: cost > 0 ? (best - cost) / cost : null }; }
 const sgn = (v) => (v >= 0 ? '+' : '−') + eur.format(Math.abs(v));
+const arcanaUrl = (e, c) => `https://buylist.arcanafrisia.com/card/${encodeURIComponent(e.aSet || c.s.toLowerCase())}/${encodeURIComponent(e.aNum || c.cn)}/c`;
+const bazaarUrl = (e) => `https://www.bazaarofmagic.eu/nl-NL/p/c/${e.bPid}`;
 function resellHtml(c) {
   if (blState === 'fout') return '';
   if (!BL) return blState === 'loading' ? '<div class="shopbox"><small>Inkoopprijzen laden…</small></div>' : '';
@@ -2311,13 +2314,13 @@ function resellHtml(c) {
   const diff = (bid) => { if (!bid || cost == null) return ''; const w = bid * f - cost; return `<small class="${w > 0.005 ? 'win' : 'lose'}">${w > 0.005 ? 'winst ' : 'verlies '}${eur.format(Math.abs(w))} t.o.v. kopen voor ${eur.format(cost)}</small>`; };
   const adj = (v) => (f < 1 ? `<small class="nmb">NM-bod ${eur.format(v)}</small>` : '');
   const aOk = e && e.a != null, bOk = e && e.b;
-  const aUrl = aOk ? `https://buylist.arcanafrisia.com/card/${encodeURIComponent(c.s.toLowerCase())}/${encodeURIComponent(c.cn)}/c` : '';
+  const aUrl = aOk ? arcanaUrl(e, c) : '', bUrl = bOk && e.bPid ? bazaarUrl(e) : '';
   const best = p ? p.best : 0, near = (x, y) => Math.abs(x - y) < 0.004;
   const rowA = aOk
     ? `<div class="shop a ${e.aLim ? 'dim' : best && near(e.a * f, best) ? 'best' : ''}"><div><b>Arcana Frisia koopt</b><small>${e.aLim ? 'limiet bereikt: ze hebben er nu genoeg van, prijs is indicatief' : (e.aMax ? 'gewild: ze willen er nog ' + e.aMax + ' stuk' + (e.aMax === 1 ? '' : 's') : 'gewild')}</small>${e.aLim ? '' : diff(e.a)}<small><a href="${aUrl}" target="_blank" rel="noopener noreferrer">Bekijk bij Arcana ↗</a></small></div><div class="shopp">${eur.format(e.a * f)}${adj(e.a)}</div></div>`
     : `<div class="shop a off"><div><b>Arcana Frisia koopt</b><small>Niet gewild: geen bod voor deze uitvoering</small></div><div class="shopp">–</div></div>`;
   const rowB = bOk
-    ? `<div class="shop b ${best && near(e.b * f, best) ? 'best' : ''}"><div><b>Bazaar of Magic koopt</b><small>gewild voor deze uitvoering</small>${diff(e.b)}</div><div class="shopp">${eur.format(e.b * f)}${adj(e.b)}</div></div>`
+    ? `<div class="shop b ${best && near(e.b * f, best) ? 'best' : ''}"><div><b>Bazaar of Magic koopt</b><small>gewild voor deze uitvoering</small>${diff(e.b)}${bUrl ? `<small><a href="${bUrl}" target="_blank" rel="noopener noreferrer">Bekijk bij Bazaar ↗</a></small>` : ''}</div><div class="shopp">${eur.format(e.b * f)}${adj(e.b)}</div></div>`
     : `<div class="shop b off"><div><b>Bazaar of Magic koopt</b><small>Niet gewild (of alleen als bulk)</small></div><div class="shopp">–</div></div>`;
   let extra = '';
   if (e2 && (e2.a != null || e2.b)) extra = `<small>Er is ook een bod voor de ${other ? 'foil' : 'non-foil'}-versie: ${[e2.a != null ? 'Arcana ' + eur.format(e2.a) : '', e2.b ? 'Bazaar ' + eur.format(e2.b) : ''].filter(Boolean).join(' · ')} (NM-prijzen).</small>`;
@@ -2385,7 +2388,7 @@ function rvRender() {
   const shown = rows.slice(0, rv.limit);
   out.innerHTML = shown.map(({ e, p }) => {
     const c = e.c, ownN = own ? own.get(e.k) : 0;
-    const bids = [e.a != null ? `Arcana ${eur.format(e.a)}${e.aLim ? ' (limiet)' : ''}` : '', e.b ? `Bazaar ${eur.format(e.b)}` : ''].filter(Boolean).join(' · ');
+    const bids = [e.a != null ? `<a class="shl" href="${arcanaUrl(e, c)}" target="_blank" rel="noopener noreferrer">Arcana ${eur.format(e.a * rvBidF())}${e.aLim ? ' (limiet)' : ''} ↗</a>` : '', e.b ? (e.bPid ? `<a class="shl" href="${bazaarUrl(e)}" target="_blank" rel="noopener noreferrer">Bazaar ${eur.format(e.b * rvBidF())} ↗</a>` : `Bazaar ${eur.format(e.b * rvBidF())}`) : ''].filter(Boolean).join(' · ');
     return `<div class="rvr" data-card="${c.id}" role="button" tabindex="0"><span class="th">${c.i ? `<img loading="lazy" alt="" src="${smallImg(c)}">` : ''}</span><div class="rvm"><b>${esc(c.n)}</b>${e.foil ? '<span class="deck">foil</span>' : ''}${ownN ? `<span class="deck">${ownN}× in collectie</span>` : ''}<small>${esc(c.sn)} #${esc(c.cn)} · kopen ${e.cm != null ? eur.format(e.cm) : '–'}${ship ? ' + ' + eur.format(ship) : ''}</small><small>${bids}</small></div><div class="rvp ${p ? (p.win > 0 ? 'win' : 'lose') : ''}">${p ? `<b>${sgn(p.win)}</b><small>${p.pct != null ? (p.pct >= 0 ? '+' : '−') + Math.round(Math.abs(p.pct) * 100) + '%' : ''}</small>` : '<b>–</b>'}</div></div>`;
   }).join('') + (rows.length > shown.length ? `<div style="text-align:center;margin:12px 0"><button class="btn" id="rv-more">Toon meer (nog ${(rows.length - shown.length).toLocaleString('nl-NL')})</button></div>` : '');
 }
@@ -2402,6 +2405,7 @@ function rvRender() {
     rv.limit = 100; rvRender();
   });
   $('rv-out').addEventListener('click', (e) => {
+    if (e.target.closest('a.shl')) return;
     if (e.target.id === 'rv-more') { rv.limit += 200; rvRender(); return; }
     const row = e.target.closest('[data-card]'); if (row) openCard(+row.dataset.card);
   });
