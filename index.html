@@ -207,11 +207,12 @@ body[data-tab="resell"] #sec-wantlist,body[data-tab="resell"] #sec-search,body[d
 .rvbadge{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,#1d7a3a 18%,transparent);color:#1d7a3a}
 .rvbadge.no{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
 .rvsum{display:block;margin-top:2px}
+.rvset{margin:6px 0 10px;color:var(--muted)}.rvset .chk{display:inline-flex;margin-right:14px}
 .shopbox{margin:12px 0}.shopbox>small{display:block;color:var(--muted);margin-top:6px;font-size:12px}.shophd{font-weight:700;margin-bottom:6px}
 .shop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line);border-left-width:5px}
 .shop.a{border-left-color:#1f6f73;background:color-mix(in srgb,#1f6f73 10%,transparent)}.shop.b{border-left-color:#c25f00;background:color-mix(in srgb,#c25f00 10%,transparent)}
 .shop small{display:block;color:var(--muted);font-size:12px}.shop small.win{color:#1d7a3a;font-weight:700}.shop small.lose{color:var(--bad,#c0392b);font-weight:700}
-.shop .shopp{font-size:20px;font-weight:800;white-space:nowrap}.shop.a .shopp{color:#1f6f73}.shop.b .shopp{color:#c25f00}
+.shop .nmb{font-size:11px;font-weight:400;color:var(--muted);text-align:right}.shop .shopp{font-size:20px;font-weight:800;white-space:nowrap}.shop.a .shopp{color:#1f6f73}.shop.b .shopp{color:#c25f00}
 .shop.best{box-shadow:0 0 0 2px #1d7a3a}.shop.dim{opacity:.7}.shop.off{opacity:.55;background:transparent}.shop.off .shopp{color:var(--muted)}
 .dres{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.dres b{display:block;margin-bottom:4px}.dres small{display:block;color:var(--muted)}
 .dres .win{color:#1d7a3a;font-weight:700}.dres .lose{color:var(--bad,#c0392b);font-weight:700}
@@ -641,12 +642,25 @@ input.qedit:focus{outline:2px solid var(--accent);outline-offset:1px}
     <p class="summary" id="rv-sum"></p>
     <div class="toolbar"><input type="search" id="rv-q" placeholder="Zoek een kaart…" autocomplete="off" aria-label="Zoek een kaart voor doorverkoop"></div>
     <div class="toolbar" id="rv-opts">
+      <select id="rv-cond" aria-label="Conditie"><option value="ex">Conditie: Excellent</option><option value="nm">Conditie: Near Mint</option></select>
       <select id="rv-scope" aria-label="Welke kaarten"><option value="all">Alle kaarten</option><option value="coll">Mijn collectie</option><option value="want">Mijn wantlist</option></select>
       <select id="rv-foil" aria-label="Foil"><option value="all">Foil en non-foil</option><option value="0">Alleen non-foil</option><option value="1">Alleen foil</option></select>
+      <select id="rv-set" aria-label="Set"><option value="">Alle sets</option></select>
       <label class="chk"><input type="checkbox" id="rv-win" checked> Alleen met winst</label>
-      <label class="chk">min. winst € <input type="number" id="rv-min" min="0" step="0.25" inputmode="decimal" value="0" style="width:72px"></label>
-      <label class="chk">verzending € <input type="number" id="rv-ship" min="0" step="0.05" inputmode="decimal" style="width:72px" aria-label="Verzendkosten per kaart bij inkoop"></label>
     </div>
+    <details class="rvset" id="rv-more-f"><summary>Meer filters: winst, koopprijs, jaar, verzending</summary>
+    <div class="toolbar" id="rv-opts2">
+      <label class="chk">min. winst € <input type="number" id="rv-min" min="0" step="0.25" inputmode="decimal" value="0" style="width:68px"></label>
+      <label class="chk">min. winst % <input type="number" id="rv-pct" min="0" step="5" inputmode="decimal" value="0" style="width:62px"></label>
+      <label class="chk">koopprijs van € <input type="number" id="rv-pmin" min="0" step="0.5" inputmode="decimal" value="" style="width:68px"> tot € <input type="number" id="rv-pmax" min="0" step="0.5" inputmode="decimal" value="" style="width:68px"></label>
+      <label class="chk">uitgebracht van <input type="number" id="rv-y1" min="1993" max="2099" step="1" inputmode="numeric" placeholder="jaar" style="width:68px"> tot <input type="number" id="rv-y2" min="1993" max="2099" step="1" inputmode="numeric" placeholder="jaar" style="width:68px"></label>
+      <label class="chk">verzending € <input type="number" id="rv-ship" min="0" step="0.05" inputmode="decimal" style="width:68px" aria-label="Verzendkosten per kaart bij inkoop"></label>
+    </div></details>
+    <details class="rvset"><summary>Hoe rekent Excellent / Near Mint?</summary>
+      <p class="hint">De winkels geven hun inkoopprijs voor Near Mint. De Cardmarket-trend is een gemiddelde over alle condities. Daarom:</p>
+      <label class="chk">Excellent: bod min <input type="number" id="rv-disc" min="0" max="90" step="1" inputmode="decimal" style="width:62px"> %</label>
+      <label class="chk">Near Mint: koopprijs plus <input type="number" id="rv-prem" min="0" max="200" step="1" inputmode="decimal" style="width:62px"> % op de trend</label>
+    </details>
     <div id="rv-out"></div>
   </section>
 
@@ -2245,7 +2259,11 @@ function openBuy(ctx) {
 }
 /* ---------- doorverkoop: inkoopprijzen van Arcana Frisia en Bazaar of Magic ---------- */
 let BL = null, blState = 'idle';
-const rv = { q: '', scope: 'all', foil: 'all', win: true, min: 0, ship: null, limit: 100 };
+const rv = { q: '', scope: 'all', foil: 'all', win: true, min: 0, ship: null, limit: 100, cond: 'ex', prem: 10, disc: 15, pct: 0, pmin: 0, pmax: 0, set: '', y1: 0, y2: 0 };
+try { const sv = JSON.parse(localStorage.getItem('rv') || '{}'); for (const k of ['cond', 'prem', 'disc']) if (sv[k] != null) rv[k] = sv[k]; } catch {}
+const rvSave = () => { try { localStorage.setItem('rv', JSON.stringify({ cond: rv.cond, prem: rv.prem, disc: rv.disc })); } catch {} };
+const rvBidF = () => (rv.cond === 'ex' ? 1 - rv.disc / 100 : 1), rvCostF = () => (rv.cond === 'nm' ? 1 + rv.prem / 100 : 1);
+const rvCondName = () => (rv.cond === 'ex' ? 'Excellent' : 'Near Mint');
 function blIndex(d) {
   const ents = new Map();
   const get = (c, foil) => { const k = c.id + '|' + foil; let e = ents.get(k); if (!e) { e = { c, foil, k: norm(c.n), a: null, aMax: 0, aLim: 0, b: null }; ents.set(k, e); } return e; };
@@ -2280,36 +2298,38 @@ async function blLoad() {
   const id = +$('d-add').dataset.id; if ($('dlg-card').open && id) { const c = byId.get(id); if (c) $('d-resell').innerHTML = resellHtml(c); }
 }
 const rvShip = () => (rv.ship != null ? rv.ship : (state.ship || 0));
-function blBest(e) { const a = e.a != null && !e.aLim ? e.a : 0, b = e.b || 0; return Math.max(a, b); }
-function blProfit(e, ship) { const best = blBest(e); if (!best || e.cm == null) return null; const cost = e.cm + ship; return { best, cost, win: best - cost, pct: cost > 0 ? (best - cost) / cost : null }; }
+function blBest(e) { const a = e.a != null && !e.aLim ? e.a : 0, b = e.b || 0; return Math.max(a, b) * rvBidF(); }
+function blProfit(e, ship) { const best = blBest(e); if (!best || e.cm == null) return null; const cost = e.cm * rvCostF() + ship; return { best, cost, win: best - cost, pct: cost > 0 ? (best - cost) / cost : null }; }
 const sgn = (v) => (v >= 0 ? '+' : '−') + eur.format(Math.abs(v));
 function resellHtml(c) {
   if (blState === 'fout') return '';
   if (!BL) return blState === 'loading' ? '<div class="shopbox"><small>Inkoopprijzen laden…</small></div>' : '';
-  const ship = state.ship || 0, main = c.f ? 1 : 0, other = main ? 0 : 1;
+  const ship = state.ship || 0, main = c.f ? 1 : 0, other = main ? 0 : 1, f = rvBidF();
   const e = BL.byCard.get(c.id + '|' + main), e2 = BL.byCard.get(c.id + '|' + other);
   const p = e ? blProfit(e, ship) : null;
-  const cost = c.f ? price(c) : price(c);
-  const diff = (bid) => { if (!bid || cost == null) return ''; const w = bid - (cost + ship); return `<small class="${w > 0.005 ? 'win' : 'lose'}">${w > 0.005 ? 'winst ' : 'verlies '}${eur.format(Math.abs(w))} t.o.v. kopen voor ${eur.format(cost + ship)}</small>`; };
+  const base = price(c), cost = base == null ? null : base * rvCostF() + ship;
+  const diff = (bid) => { if (!bid || cost == null) return ''; const w = bid * f - cost; return `<small class="${w > 0.005 ? 'win' : 'lose'}">${w > 0.005 ? 'winst ' : 'verlies '}${eur.format(Math.abs(w))} t.o.v. kopen voor ${eur.format(cost)}</small>`; };
+  const adj = (v) => (f < 1 ? `<small class="nmb">NM-bod ${eur.format(v)}</small>` : '');
   const aOk = e && e.a != null, bOk = e && e.b;
   const aUrl = aOk ? `https://buylist.arcanafrisia.com/card/${encodeURIComponent(c.s.toLowerCase())}/${encodeURIComponent(c.cn)}/c` : '';
-  const best = p ? p.best : 0;
+  const best = p ? p.best : 0, near = (x, y) => Math.abs(x - y) < 0.004;
   const rowA = aOk
-    ? `<div class="shop a ${e.aLim ? 'dim' : best && e.a === best ? 'best' : ''}"><div><b>Arcana Frisia koopt</b><small>${e.aLim ? 'limiet bereikt: ze hebben er nu genoeg van, prijs is indicatief' : (e.aMax ? 'gewild: ze willen er nog ' + e.aMax + ' stuk' + (e.aMax === 1 ? '' : 's') : 'gewild')}</small>${e.aLim ? '' : diff(e.a)}<small><a href="${aUrl}" target="_blank" rel="noopener noreferrer">Bekijk bij Arcana ↗</a></small></div><div class="shopp">${eur.format(e.a)}</div></div>`
+    ? `<div class="shop a ${e.aLim ? 'dim' : best && near(e.a * f, best) ? 'best' : ''}"><div><b>Arcana Frisia koopt</b><small>${e.aLim ? 'limiet bereikt: ze hebben er nu genoeg van, prijs is indicatief' : (e.aMax ? 'gewild: ze willen er nog ' + e.aMax + ' stuk' + (e.aMax === 1 ? '' : 's') : 'gewild')}</small>${e.aLim ? '' : diff(e.a)}<small><a href="${aUrl}" target="_blank" rel="noopener noreferrer">Bekijk bij Arcana ↗</a></small></div><div class="shopp">${eur.format(e.a * f)}${adj(e.a)}</div></div>`
     : `<div class="shop a off"><div><b>Arcana Frisia koopt</b><small>Niet gewild: geen bod voor deze uitvoering</small></div><div class="shopp">–</div></div>`;
   const rowB = bOk
-    ? `<div class="shop b ${best && e.b === best ? 'best' : ''}"><div><b>Bazaar of Magic koopt</b><small>gewild voor deze uitvoering</small>${diff(e.b)}</div><div class="shopp">${eur.format(e.b)}</div></div>`
+    ? `<div class="shop b ${best && near(e.b * f, best) ? 'best' : ''}"><div><b>Bazaar of Magic koopt</b><small>gewild voor deze uitvoering</small>${diff(e.b)}</div><div class="shopp">${eur.format(e.b * f)}${adj(e.b)}</div></div>`
     : `<div class="shop b off"><div><b>Bazaar of Magic koopt</b><small>Niet gewild (of alleen als bulk)</small></div><div class="shopp">–</div></div>`;
   let extra = '';
-  if (e2 && (e2.a != null || e2.b)) extra = `<small>Er is ook een bod voor de ${other ? 'foil' : 'non-foil'}-versie: ${[e2.a != null ? 'Arcana ' + eur.format(e2.a) : '', e2.b ? 'Bazaar ' + eur.format(e2.b) : ''].filter(Boolean).join(' · ')}.</small>`;
-  return `<div class="shopbox"><div class="shophd">Doorverkoop aan een winkel</div>${rowA}${rowB}${extra}<small>Inkoopprijzen van ${esc(BL.updated || '?')}, voor Near Mint. Kopen = Cardmarket-trend${ship ? ' + verzending' : ''}: een indicatie.</small></div>`;
+  if (e2 && (e2.a != null || e2.b)) extra = `<small>Er is ook een bod voor de ${other ? 'foil' : 'non-foil'}-versie: ${[e2.a != null ? 'Arcana ' + eur.format(e2.a) : '', e2.b ? 'Bazaar ' + eur.format(e2.b) : ''].filter(Boolean).join(' · ')} (NM-prijzen).</small>`;
+  return `<div class="shopbox"><div class="shophd">Doorverkoop aan een winkel · ${rvCondName()}</div>${rowA}${rowB}${extra}<small>Inkoopprijzen van ${esc(BL.updated || '?')} (voor Near Mint). Berekend voor ${rvCondName()}: ${rv.cond === 'ex' ? 'bod −' + rv.disc + '%' : 'koopprijs +' + rv.prem + '% op de Cardmarket-trend'}${ship ? ', plus verzending' : ''}. Pas dit aan in de tab Doorverkoop. Een indicatie.</small></div>`;
 }
 function blNameBadge(g) {
   if (!BL) { if (blState === 'idle') blLoad(); return ''; }
-  let best = null;
-  for (const c of g.list) for (const foil of [0, 1]) { const e = BL.byCard.get(c.id + '|' + foil); if (!e) continue; const p = blProfit(e, state.ship || 0); if (p && (best == null || p.win > best)) best = p.win; }
+  let best = null, bc = null, n = 0, nwin = 0;
+  for (const c of g.list) for (const foil of [0, 1]) { const e = BL.byCard.get(c.id + '|' + foil); if (!e) continue; const p = blProfit(e, state.ship || 0); if (!p) continue; n++; if (p.win > 0.005) nwin++; if (best == null || p.win > best) { best = p.win; bc = c; } }
   if (best == null) return '';
-  return best > 0.005 ? `<span class="rvbadge" title="Beste winst bij doorverkopen aan Arcana Frisia of Bazaar of Magic">verkoop tot ${sgn(best)}</span>` : `<span class="rvbadge no" title="Doorverkopen levert bij geen enkele uitvoering winst op">verkoop ${sgn(best)}</span>`;
+  const lab = bc ? ` (${esc(bc.sn)}${nwin < n ? ', ' + nwin + ' van ' + n + ' uitv.' : ''})` : '';
+  return best > 0.005 ? `<span class="rvbadge" title="Beste winst bij doorverkopen (${rvCondName()}). Dit geldt voor één uitvoering, kijk per uitvoering.">verkoop tot ${sgn(best)}${lab}</span>` : `<span class="rvbadge no" title="Doorverkopen levert bij geen enkele uitvoering winst op">verkoop ${sgn(best)}</span>`;
 }
 function blPickLine(c) {
   if (!BL) return '';
@@ -2323,9 +2343,19 @@ function blBadge(c) {
   const p = blProfit(e, state.ship || 0); if (!p) return '';
   return p.win > 0.005 ? `<span class="rvbadge" title="Verkopen aan een winkel levert winst op">verkoop ${sgn(p.win)}</span>` : `<span class="rvbadge no" title="Verkopen aan een winkel levert geen winst op">verkoop ${sgn(p.win)}</span>`;
 }
+let rvSetsBuilt = false;
+function rvSync() {
+  $('rv-cond').value = rv.cond; $('rv-disc').value = rv.disc; $('rv-prem').value = rv.prem;
+  if (BL && !rvSetsBuilt) {
+    const m = new Map(); for (const e of BL.list) if (!m.has(e.c.s)) m.set(e.c.s, e.c.sn);
+    $('rv-set').insertAdjacentHTML('beforeend', [...m].sort((x, y) => String(x[1]).localeCompare(String(y[1]))).map(([s, n]) => `<option value="${esc(s)}">${esc(n)} (${esc(s)})</option>`).join(''));
+    rvSetsBuilt = true; $('rv-set').value = rv.set;
+  }
+}
 function rvRender() {
   const out = $('rv-out'); if (!out) return;
   if (document.body.dataset.tab !== 'resell') return;
+  rvSync();
   $('rv-ship').placeholder = String(state.ship || 0);
   if (blState === 'loading' || blState === 'idle') { $('rv-sum').textContent = ''; out.innerHTML = '<div class="empty">Inkoopprijzen laden…</div>'; return; }
   if (!BL) { $('rv-sum').textContent = ''; out.innerHTML = '<div class="empty">De inkoopprijzen van de winkels staan nog niet in de app. Zet het bestand buylist.json in de map data van je GitHub-repo (zie de uitleg van Claude).</div>'; return; }
@@ -2336,16 +2366,21 @@ function rvRender() {
   const rows = [];
   for (const e of BL.list) {
     if (rv.foil !== 'all' && String(e.foil) !== rv.foil) continue;
+    if (rv.set && e.c.s !== rv.set) continue;
+    if (rv.pmin && (e.cm == null || e.cm < rv.pmin)) continue;
+    if (rv.pmax && (e.cm == null || e.cm > rv.pmax)) continue;
+    if (rv.y1 || rv.y2) { const y = +(e.c.d || '').slice(0, 4); if (!y || (rv.y1 && y < rv.y1) || (rv.y2 && y > rv.y2)) continue; }
     if (toks.length && !toks.every((t) => e.k.includes(t))) continue;
     if (own && !own.has(e.k)) continue;
     if (want && !want.has(e.k)) continue;
     const p = blProfit(e, ship);
     if (rv.win && !(p && p.win > 0 && p.win >= rv.min)) continue;
+    if (rv.pct && !(p && p.pct != null && p.pct * 100 >= rv.pct)) continue;
     rows.push({ e, p });
   }
   rows.sort((a, b) => (b.p ? b.p.win : -1e9) - (a.p ? a.p.win : -1e9));
   const wins = rows.filter((x) => x.p && x.p.win > 0).length;
-  $('rv-sum').innerHTML = `<b>${rows.length.toLocaleString('nl-NL')}</b> kaarten${rv.win ? ' met winst' : ` (${wins.toLocaleString('nl-NL')} met winst)`} · inkoopprijzen van ${esc(BL.updated || '?')}. Winst = beste bod van een winkel min Cardmarket-trend${ship ? ' min verzending ' + eur.format(ship) : ''}. Indicatie: de trend is een gemiddelde over alle condities, een Near Mint-exemplaar kost vaak meer.`;
+  $('rv-sum').innerHTML = `<b>${rows.length.toLocaleString('nl-NL')}</b> kaarten${rv.win ? ' met winst' : ` (${wins.toLocaleString('nl-NL')} met winst)`} · inkoopprijzen van ${esc(BL.updated || '?')}. Berekend voor <b>${rvCondName()}</b>: ${rv.cond === 'ex' ? 'bod −' + rv.disc + '%' : 'koopprijs +' + rv.prem + '% op de Cardmarket-trend'}${ship ? ', verzending ' + eur.format(ship) : ''}. Winst = beste bod min koopprijs. Een indicatie.`;
   if (!rows.length) { out.innerHTML = `<div class="empty">${q || rv.scope !== 'all' ? 'Geen kaarten gevonden met deze filters.' : 'Geen kaarten met winst.'}</div>`; return; }
   const shown = rows.slice(0, rv.limit);
   out.innerHTML = shown.map(({ e, p }) => {
@@ -2357,8 +2392,12 @@ function rvRender() {
 {
   let t = 0;
   $('rv-q').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { rv.q = e.target.value; rv.limit = 100; rvRender(); }, 150); });
-  $('rv-opts').addEventListener('change', (e) => {
-    if (e.target.id === 'rv-scope') rv.scope = e.target.value; else if (e.target.id === 'rv-foil') rv.foil = e.target.value; else if (e.target.id === 'rv-win') rv.win = e.target.checked;
+  for (const id of ['sec-resell']) $(id).addEventListener('change', (e) => {
+    if (e.target.id === 'rv-cond') { rv.cond = e.target.value; rvSave(); } else if (e.target.id === 'rv-disc') { rv.disc = Math.min(90, Math.max(0, num(e.target.value) ?? 0)); rvSave(); } else if (e.target.id === 'rv-prem') { rv.prem = Math.min(200, Math.max(0, num(e.target.value) ?? 0)); rvSave(); }
+    else if (e.target.id === 'rv-set') rv.set = e.target.value; else if (e.target.id === 'rv-pct') rv.pct = Math.max(0, num(e.target.value) ?? 0);
+    else if (e.target.id === 'rv-pmin') rv.pmin = Math.max(0, num(e.target.value) ?? 0); else if (e.target.id === 'rv-pmax') rv.pmax = Math.max(0, num(e.target.value) ?? 0);
+    else if (e.target.id === 'rv-y1') rv.y1 = Math.max(0, num(e.target.value) ?? 0); else if (e.target.id === 'rv-y2') rv.y2 = Math.max(0, num(e.target.value) ?? 0);
+    else if (e.target.id === 'rv-scope') rv.scope = e.target.value; else if (e.target.id === 'rv-foil') rv.foil = e.target.value; else if (e.target.id === 'rv-win') rv.win = e.target.checked;
     else if (e.target.id === 'rv-min') rv.min = Math.max(0, num(e.target.value) ?? 0); else if (e.target.id === 'rv-ship') rv.ship = e.target.value === '' ? null : Math.max(0, num(e.target.value) ?? 0);
     rv.limit = 100; rvRender();
   });
